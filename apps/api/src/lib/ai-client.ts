@@ -16,7 +16,7 @@ export class AiImageError extends Error {
 type DetectedFace = { embedding: number[]; score: number; box: number[] };
 type LivenessResult = {
   passed: boolean;
-  reason: 'NOT_FACING_CAMERA' | 'HEAD_NOT_TURNED' | 'SPOOF_DETECTED' | null;
+  reason: 'NOT_FACING_CAMERA' | 'HEAD_NOT_TURNED' | 'DIFFERENT_PEOPLE' | 'SPOOF_DETECTED' | null;
   realScore: number;
   embedding: number[] | null;
 };

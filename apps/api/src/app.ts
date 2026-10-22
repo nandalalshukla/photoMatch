@@ -13,6 +13,9 @@ import { auth } from './lib/auth.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { publicRouter } from './modules/public/public.routes.js';
 import { eventsRouter } from './modules/events/events.routes.js';
+import { galleriesRouter } from './modules/galleries/galleries.routes.js';
+import { webhooksRouter } from './modules/bots/webhooks.routes.js';
+import { adminRouter } from './modules/admin/admin.routes.js';
 
 export const app = express();
 
@@ -56,6 +59,9 @@ app.get('/api/health', (_req, res) => {
 });
 app.use('/api/public', publicRouter);
 app.use('/api/events', eventsRouter);
+app.use('/api/galleries', galleriesRouter);
+app.use('/api/webhooks', webhooksRouter);
+app.use('/api/admin', adminRouter);
 
 // Unknown API route → JSON 404 (instead of the web app's HTML).
 app.use('/api', (_req, res) => {
