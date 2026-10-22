@@ -39,6 +39,11 @@ async function progressByEvent(eventIds: string[]) {
   );
 }
 
+/** Progress of a single event (used by the guest page and the bots). */
+export async function getEventProgress(eventId: string) {
+  return (await progressByEvent([eventId])).get(eventId)!;
+}
+
 /** The link guests open (it is also what the QR code contains). */
 export const guestUrl = (publicCode: string) => `${env.APP_URL}/e/${publicCode}`;
 
@@ -65,10 +70,10 @@ export async function listEvents(userId: string) {
 export async function getEvent(userId: string, eventId: string) {
   const event = await getOwnedEvent(eventId, userId);
   const [progress, searchCount] = await Promise.all([
-    progressByEvent([eventId]),
+    getEventProgress(eventId),
     prisma.guestSearch.count({ where: { eventId } }),
   ]);
-  return { ...event, guestUrl: guestUrl(event.publicCode), searchCount, progress: progress.get(eventId)! };
+  return { ...event, guestUrl: guestUrl(event.publicCode), searchCount, progress };
 }
 
 export async function createEvent(userId: string, data: { name: string; livenessRequired: boolean }) {

@@ -8,7 +8,7 @@ import { Router } from 'express';
 import { features } from '../../config/env.js';
 import { prisma } from '../../lib/db.js';
 import { HttpError } from '../../lib/http-error.js';
-import { calculateProgress } from '../events/event-progress.js';
+import { getEventProgress } from '../events/events.service.js';
 import { telegramLink, whatsappLink } from '../bots/links.js';
 
 export const publicRouter = Router();
@@ -28,8 +28,7 @@ publicRouter.get('/events/:code', async (req, res) => {
   // A switched-off event looks exactly like a missing one, so codes can't be probed.
   if (!event || !event.guestAccess) throw new HttpError(404, 'Event not found');
 
-  const rows = await prisma.photo.groupBy({ by: ['status'], where: { eventId: event.id }, _count: { _all: true } });
-  const progress = calculateProgress(Object.fromEntries(rows.map((r) => [r.status, r._count._all])));
+  const progress = await getEventProgress(event.id);
   const ready = progress.state === 'READY';
 
   res.json({
