@@ -25,6 +25,7 @@ export function GalleryPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [zipping, setZipping] = useState<number | null>(null);
   const [viewing, setViewing] = useState<GalleryPhoto | null>(null);
+  const [downloadError, setDownloadError] = useState('');
 
   const query = useQuery({
     queryKey: ['gallery', searchId],
@@ -46,24 +47,31 @@ export function GalleryPage() {
   /** Download the selected photos as one ZIP file, built in the browser. */
   const downloadZip = async () => {
     const photos = gallery!.photos.filter((p) => selected.has(p.id));
-    // The ZIP library is only downloaded when someone actually needs it.
-    const { default: JSZip } = await import('jszip');
-    const zip = new JSZip();
+    setDownloadError('');
     setZipping(0);
-    for (const [index, photo] of photos.entries()) {
-      const blob = await (await fetch(photo.url)).blob();
-      zip.file(`photomatch-${String(index + 1).padStart(3, '0')}.jpg`, blob);
-      setZipping(Math.round(((index + 1) / photos.length) * 100));
+    try {
+      // The ZIP library is only downloaded when someone actually needs it.
+      const { default: JSZip } = await import('jszip');
+      const zip = new JSZip();
+      for (const [index, photo] of photos.entries()) {
+        const response = await fetch(photo.url);
+        if (!response.ok) throw new Error('download failed');
+        zip.file(`photomatch-${String(index + 1).padStart(3, '0')}.jpg`, await response.blob());
+        setZipping(Math.round(((index + 1) / photos.length) * 100));
+      }
+      const file = await zip.generateAsync({ type: 'blob' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(file);
+      link.download = `${gallery!.eventName.replace(/\W+/g, '-').toLowerCase()}-photos.zip`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+      setSelecting(false);
+      setSelected(new Set());
+    } catch {
+      setDownloadError("Some photos couldn't be downloaded. Check your connection and try again.");
+    } finally {
+      setZipping(null);
     }
-    const file = await zip.generateAsync({ type: 'blob' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(file);
-    link.download = `${gallery!.eventName.replace(/\W+/g, '-').toLowerCase()}-photos.zip`;
-    link.click();
-    URL.revokeObjectURL(link.href);
-    setZipping(null);
-    setSelecting(false);
-    setSelected(new Set());
   };
 
   const content = () => {
@@ -119,7 +127,7 @@ export function GalleryPage() {
             <button className="text-sm font-medium text-white/80 hover:text-white" onClick={() => setSelected(selected.size === gallery.photos.length ? new Set() : new Set(gallery.photos.map((p) => p.id)))}>
               {selected.size === gallery.photos.length ? 'Clear' : 'Select all'}
             </button>
-            <span className="flex-1 text-center text-sm">{selected.size} selected</span>
+            <span className="flex-1 text-center text-sm">{downloadError ? <span className="text-red-300">{downloadError}</span> : `${selected.size} selected`}</span>
             <Button size="sm" disabled={!selected.size || zipping !== null} onClick={downloadZip}>
               {zipping !== null ? <><LoaderCircle className="size-4 animate-spin" />{zipping}%</> : <><Download className="size-4" />Download</>}
             </Button>

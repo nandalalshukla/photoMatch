@@ -64,6 +64,8 @@ export function SignInPage() {
     const { error } = await authClient.signIn.email({
       email: String(form.get('email')),
       password: String(form.get('password')),
+      // If the email isn't verified yet, the re-sent verification link leads here.
+      callbackURL: next,
     });
     setLoading(false);
     if (!error) return navigate(next);
