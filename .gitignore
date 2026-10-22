@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Secrets — never commit real environment values.
+# Copy .env.example to .env and fill it in locally.
+.env
+.env.*
+!.env.example
+
+# AI model files are downloaded automatically on first start (hundreds of MB).
+apps/ai/models/
+
+# Editors / OS
+.DS_Store
+.vscode/
+.idea/
+*.log
