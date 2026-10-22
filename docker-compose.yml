@@ -1,0 +1,39 @@
+# Local infrastructure for PhotoMatch AI.
+#
+#   docker compose up -d db        → only the database (run api/web/ai yourself)
+#   docker compose up -d           → database + AI service
+#
+# We use the official pgvector image: plain PostgreSQL with the `vector`
+# extension pre-installed. Face embeddings live in the same database as the
+# rest of the app, so there is no separate vector database to run.
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: photomatch
+      POSTGRES_PASSWORD: photomatch
+      POSTGRES_DB: photomatch
+    ports:
+      - '5432:5432'
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U photomatch -d photomatch']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  ai:
+    build: ./apps/ai
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - '8000:8000'
+    volumes:
+      # Keep downloaded models between restarts (they are large).
+      - ai_models:/app/models
+
+volumes:
+  db_data:
+  ai_models:
