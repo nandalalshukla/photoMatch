@@ -1,0 +1,43 @@
+{
+  "name": "@photomatch/api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "postinstall": "prisma generate",
+    "dev": "tsx watch src/server.ts",
+    "worker": "tsx watch src/worker.ts",
+    "start": "tsx src/server.ts",
+    "worker:start": "tsx src/worker.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio",
+    "bots:setup": "tsx scripts/setup-bots.ts",
+    "admin:promote": "tsx scripts/promote-admin.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "better-auth": "^1.7.12",
+    "cloudinary": "^2.11.0",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^18.0.8",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.1",
+    "helmet": "^8.3.0",
+    "multer": "^2.4.0",
+    "nodemailer": "^10.2.0",
+    "pg-boss": "^12.38.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^5.0.6",
+    "@types/multer": "^2.3.0",
+    "@types/node": "^26.6.5",
+    "@types/nodemailer": "^8.0.2",
+    "prisma": "^6.19.3",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

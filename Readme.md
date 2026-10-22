@@ -1,1 +1,0 @@
-to create an ai tool that finds all of your photos in an event and send them to you directly in your whatsapp or telegram.
