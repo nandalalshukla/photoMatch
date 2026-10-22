@@ -3,8 +3,9 @@
  * Prisma keeps a connection pool inside, so creating it once is important.
  */
 import { PrismaClient } from '@prisma/client';
+import { env } from '../config/env.js';
 
-export const prisma = new PrismaClient();
+export const prisma = new PrismaClient({ datasourceUrl: env.DATABASE_URL });
 
 /**
  * pgvector expects vectors written as text like "[0.1,0.2,...]".
