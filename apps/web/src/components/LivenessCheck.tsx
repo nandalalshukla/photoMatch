@@ -10,7 +10,7 @@
  * Frames are only used for this check and are never stored.
  */
 import { useEffect, useRef, useState } from 'react';
-import { Camera, CheckCircle2, RotateCcw, ScanFace, ShieldCheck } from 'lucide-react';
+import { Camera, CheckCircle2, RotateCcw, ScanFace, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
 import { Button } from './ui';
 
@@ -105,7 +105,7 @@ export function LivenessCheck({ searchId, attemptsLeft, onPassed }: Props) {
 
   return (
     <div className="mx-auto max-w-md overflow-hidden rounded-3xl bg-white shadow-xl shadow-brand-900/5 ring-1 ring-slate-200">
-      <div className="relative aspect-[4/5] bg-slate-900">
+      <div className="relative aspect-[4/5] overflow-hidden bg-slate-900">
         {filming ? (
           <>
             {/* Mirrored like a selfie camera, so moving feels natural. */}
@@ -121,7 +121,7 @@ export function LivenessCheck({ searchId, attemptsLeft, onPassed }: Props) {
           </>
         ) : (
           <div className="grid size-full place-items-center brand-gradient text-white">
-            {step === 'passed' ? <CheckCircle2 className="size-20" /> : step === 'checking' ? <ScanFace className="size-20 animate-pulse" /> : <ShieldCheck className="size-20" />}
+            {step === 'passed' ? <CheckCircle2 className="size-20" /> : step === 'checking' ? <ScanFace className="size-20 animate-pulse" /> : step === 'failed' ? <ShieldAlert className="size-20" /> : <ShieldCheck className="size-20" />}
           </div>
         )}
       </div>
