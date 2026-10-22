@@ -103,14 +103,9 @@ def test_liveness_fails_when_not_facing_camera_first(client):
     assert body["reason"] == "NOT_FACING_CAMERA"
 
 
-def test_liveness_scores_turn_and_spoof(client):
-    """
-    Head turn is accepted. These sample faces are small crops of a printed
-    press photo, so the anti-spoof model may still flag them — we only check
-    the response is well formed and the turn itself was not the problem.
-    """
+def test_liveness_fails_when_frames_show_different_people(client):
+    """The straight and turned frames here are two different people from the group photo."""
     files = {"front": ("f.jpg", jpeg(STRAIGHT_FACE)), "turned": ("t.jpg", jpeg(TURNED_FACE))}
     body = client.post("/liveness", files=files, headers=HEADERS).json()
-    assert body["reason"] in (None, "SPOOF_DETECTED")
-    assert 0 <= body["realScore"] <= 1
+    assert body["reason"] == "DIFFERENT_PEOPLE"
     assert abs(body["turnedYaw"] - body["frontYaw"]) >= 20

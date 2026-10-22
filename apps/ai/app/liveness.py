@@ -10,6 +10,7 @@ We combine two simple checks, each stopping a different kind of cheating:
 2. Active head-turn challenge.
    The browser captures one frame looking straight at the camera and one frame
    with the head turned. A still photo held up to the camera cannot turn.
+   We also check both frames show the same person.
 
 Identity (is this the same person who sent the selfie?) is checked by the Node
 API, which compares the face embedding we return with the stored selfie.
@@ -104,6 +105,7 @@ def evaluate_liveness(
     threshold: float,
     max_front_yaw: float,
     min_turn_yaw: float,
+    min_same_person: float,
 ) -> LivenessResult:
     """Run both liveness checks on the two captured frames."""
     front_image, front_face = front
@@ -128,6 +130,12 @@ def evaluate_liveness(
         return result(False, "NOT_FACING_CAMERA")
     if abs(turned_face.yaw - front_face.yaw) < min_turn_yaw:
         return result(False, "HEAD_NOT_TURNED")
+    # Both frames must show the same person, otherwise someone could show the
+    # real guest's face for one frame and their own turning head for the other.
+    # (A turned head looks less similar than a straight one, so this bar is lower
+    # than the normal face-match threshold.)
+    if float(np.dot(front_face.embedding, turned_face.embedding)) < min_same_person:
+        return result(False, "DIFFERENT_PEOPLE")
     if real_score < threshold:
         return result(False, "SPOOF_DETECTED")
     return result(True, None)

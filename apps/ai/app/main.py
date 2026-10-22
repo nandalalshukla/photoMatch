@@ -109,6 +109,7 @@ def liveness(front: UploadFile = File(...), turned: UploadFile = File(...)):
         threshold=settings.liveness_threshold,
         max_front_yaw=settings.max_front_yaw,
         min_turn_yaw=settings.min_turn_yaw,
+        min_same_person=settings.min_same_person,
     )
     return {
         "passed": result.passed,

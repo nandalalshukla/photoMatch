@@ -44,6 +44,8 @@ class Settings(BaseSettings):
     # camera, then turns their head. A printed photo cannot do this.
     max_front_yaw: float = 15.0
     min_turn_yaw: float = 20.0
+    # Minimum similarity between the straight and the turned face (same person?).
+    min_same_person: float = 0.3
 
     # Reject uploads bigger than this (bytes).
     max_image_bytes: int = 20 * 1024 * 1024

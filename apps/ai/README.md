@@ -39,7 +39,7 @@ accept `multipart/form-data`.
 | `POST /faces/selfie` | `image` | `{ embedding[512], score }` or `422 { code: NO_FACE \| MULTIPLE_FACES \| INVALID_IMAGE }` |
 | `POST /liveness` | `front`, `turned` | `{ passed, reason, realScore, frontYaw, turnedYaw, embedding }` |
 
-`reason` is one of `NOT_FACING_CAMERA`, `HEAD_NOT_TURNED`, `SPOOF_DETECTED`
+`reason` is one of `NOT_FACING_CAMERA`, `HEAD_NOT_TURNED`, `DIFFERENT_PEOPLE`, `SPOOF_DETECTED`
 (or `null` when it passed).
 
 ## Run it
