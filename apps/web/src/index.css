@@ -1,0 +1,33 @@
+/*
+ * Global styles. Almost all styling is done with Tailwind utility classes
+ * directly in the components; this file only sets the brand theme.
+ */
+@import '@fontsource-variable/inter';
+@import 'tailwindcss';
+
+/* Brand tokens → usable as classes like bg-brand-600, text-brand-700 ... */
+@theme {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --color-brand-50: #f5f3ff;
+  --color-brand-100: #ede9fe;
+  --color-brand-200: #ddd6fe;
+  --color-brand-300: #c4b5fd;
+  --color-brand-500: #8b5cf6;
+  --color-brand-600: #7c3aed;
+  --color-brand-700: #6d28d9;
+  --color-brand-900: #2e1065;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased;
+}
+
+/* The signature gradient used for the logo, hero text and primary highlights. */
+@utility brand-gradient {
+  background-image: linear-gradient(135deg, #7c3aed 0%, #db2777 100%);
+}
+@utility brand-gradient-text {
+  background-image: linear-gradient(135deg, #7c3aed 0%, #db2777 100%);
+  background-clip: text;
+  color: transparent;
+}
