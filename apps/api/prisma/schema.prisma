@@ -1,0 +1,217 @@
+// PhotoMatch AI — database schema.
+//
+// Two groups of tables live here:
+//   1. Auth tables (User, Session, Account, Verification) — the exact shape
+//      better-auth expects. We don't write auth logic ourselves; better-auth
+//      reads and writes these tables.
+//   2. App tables (Event, Photo, Face, ChatSession, GuestSearch, GuestMatch).
+//
+// Face embeddings are stored with the pgvector extension, so face search is a
+// normal SQL query and we don't need a separate vector database.
+
+generator client {
+  provider        = "prisma-client-js"
+  // Lets Prisma create the pgvector extension in a migration.
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
+}
+
+// ---------------------------------------------------------------------------
+// Auth tables (managed by better-auth)
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String    @id
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt
+  // Added by better-auth's admin plugin ("user" or "admin").
+  role          String?   @default("user")
+  banned        Boolean?  @default(false)
+  banReason     String?
+  banExpires    DateTime?
+
+  sessions Session[]
+  accounts Account[]
+  events   Event[]
+
+  @@map("user")
+}
+
+model Session {
+  id             String   @id
+  expiresAt      DateTime
+  token          String   @unique
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  ipAddress      String?
+  userAgent      String?
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  impersonatedBy String?
+
+  @@index([userId])
+  @@map("session")
+}
+
+// One row per login method: "credential" (email + password) or "google".
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+// Short-lived tokens for email verification and password reset links.
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+// ---------------------------------------------------------------------------
+// App tables
+// ---------------------------------------------------------------------------
+
+model Event {
+  id               String   @id @default(uuid())
+  name             String
+  // Short code printed in the QR link and sent to the bots, e.g. "K7P2QM9X".
+  publicCode       String   @unique
+  // Organizer can switch guest search off at any time.
+  guestAccess      Boolean  @default(true)
+  // NEW in PhotoMatch: guests must pass a liveness check before seeing photos.
+  livenessRequired Boolean  @default(false)
+  ownerId          String
+  owner            User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  photos       Photo[]
+  faces        Face[]
+  searches     GuestSearch[]
+  chatSessions ChatSession[]
+
+  @@index([ownerId])
+}
+
+// Progress of one photo through the pipeline. Event progress is calculated by
+// counting photos per status, so there are no counters that can drift out of sync.
+enum PhotoStatus {
+  PROCESSING // uploaded to Cloudinary, waiting for / undergoing face indexing
+  READY // faces indexed (could be 0 faces)
+  FAILED // indexing failed after all retries
+}
+
+model Photo {
+  id           String      @id @default(uuid())
+  eventId      String
+  event        Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  cloudinaryId String      @unique // Cloudinary "public_id"; unique so retried uploads aren't duplicated
+  url          String // HTTPS URL of the original image
+  width        Int?
+  height       Int?
+  status       PhotoStatus @default(PROCESSING)
+  faceCount    Int         @default(0)
+  createdAt    DateTime    @default(now())
+
+  faces   Face[]
+  matches GuestMatch[]
+
+  @@index([eventId, status])
+}
+
+// One row per face found in an event photo.
+model Face {
+  id        String                     @id @default(uuid())
+  photoId   String
+  photo     Photo                      @relation(fields: [photoId], references: [id], onDelete: Cascade)
+  // Copied from the photo so search can filter by event without a join.
+  eventId   String
+  event     Event                      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  // 512 numbers describing the face (from InsightFace). Prisma can't read this
+  // type directly, so we use raw SQL for inserts and searches.
+  embedding Unsupported("vector(512)")
+
+  @@index([eventId])
+}
+
+enum Channel {
+  TELEGRAM
+  WHATSAPP
+}
+
+// Remembers which event a Telegram chat / WhatsApp number is currently talking about.
+model ChatSession {
+  channel   Channel
+  chatId    String // Telegram chat id or WhatsApp phone number
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  updatedAt DateTime @updatedAt
+
+  @@id([channel, chatId])
+}
+
+enum SearchStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+// One selfie sent by a guest. Its random id is also the private gallery link.
+model GuestSearch {
+  id               String                      @id @default(uuid())
+  eventId          String
+  event            Event                       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  channel          Channel
+  chatId           String
+  status           SearchStatus                @default(PENDING)
+  error            String? // friendly reason when status = FAILED
+  // We keep only the selfie's face embedding (never the selfie image itself).
+  // It is used to check that the person doing the liveness test is the same
+  // person who sent the selfie.
+  selfieEmbedding  Unsupported("vector(512)")?
+  livenessAttempts Int                         @default(0)
+  createdAt        DateTime                    @default(now())
+
+  matches GuestMatch[]
+
+  @@index([channel, chatId])
+}
+
+model GuestMatch {
+  searchId   String
+  search     GuestSearch @relation(fields: [searchId], references: [id], onDelete: Cascade)
+  photoId    String
+  photo      Photo       @relation(fields: [photoId], references: [id], onDelete: Cascade)
+  similarity Float // 0–1, how close the best face in the photo is to the selfie
+
+  @@id([searchId, photoId])
+}
