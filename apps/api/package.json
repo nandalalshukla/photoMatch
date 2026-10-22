@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "postinstall": "prisma generate",
     "dev": "tsx watch src/server.ts",
     "worker": "tsx watch src/worker.ts",
     "start": "tsx src/server.ts",

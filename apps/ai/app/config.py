@@ -11,8 +11,11 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# apps/ai/app/config.py → repository root is three parents up.
-ROOT_ENV_FILE = Path(__file__).resolve().parents[3] / ".env"
+# apps/ai/app/config.py → the shared .env is in the repository root, three
+# folders up. Inside Docker the folder is shallower and variables come from
+# `env_file` in docker-compose instead, so we only use the path if it exists.
+_parents = Path(__file__).resolve().parents
+ROOT_ENV_FILE = _parents[3] / ".env" if len(_parents) > 3 else None
 
 
 class Settings(BaseSettings):
