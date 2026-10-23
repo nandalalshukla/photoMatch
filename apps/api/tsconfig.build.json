@@ -1,0 +1,14 @@
+{
+  // Production build: compiles src/*.ts into plain JavaScript in dist/,
+  // which runs with `node` (no TypeScript tooling needed at runtime).
+  // dist/ keeps the same folder depth as src/, so relative paths
+  // (like the .env and web/dist lookups) work in both.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "dist",
+    "rootDir": "src",
+    "sourceMap": true
+  },
+  "include": ["src"]
+}
