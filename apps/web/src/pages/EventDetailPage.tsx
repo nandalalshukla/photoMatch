@@ -6,7 +6,7 @@
  *   • all photos, with "add more" and delete
  */
 import { useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { QRCodeCanvas } from 'qrcode.react';
 import {
@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { EventStateBadge } from '../components/EventStateBadge';
 import { PhotoDropzone } from '../components/PhotoDropzone';
-import { UploadProgressCard } from '../components/UploadProgressCard';
+import { UploadProgressCard, UploadSummaryText } from '../components/UploadProgressCard';
 import { Button, Card, EmptyState, ErrorText, Modal, ProgressBar, Spinner, Toggle } from '../components/ui';
 import { api, send } from '../lib/api';
 import { thumbnail } from '../lib/images';
@@ -29,6 +29,9 @@ export function EventDetailPage() {
   const [copied, setCopied] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
+  // Duplicates skipped / failures from the last upload (also handed over by the create-event page).
+  const location = useLocation();
+  const [uploadSummary, setUploadSummary] = useState<UploadProgress | null>(location.state?.uploadSummary ?? null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [viewing, setViewing] = useState<Photo | null>(null);
 
@@ -70,9 +73,10 @@ export function EventDetailPage() {
   });
   const upload = useMutation({
     mutationFn: (files: File[]) => uploadEventPhotos(eventId!, files, setUploadProgress),
-    onSuccess: () => {
+    onSuccess: (result) => {
       setShowUpload(false);
       setUploadProgress(null);
+      setUploadSummary(result);
       refresh();
     },
   });
@@ -101,6 +105,17 @@ export function EventDetailPage() {
   return (
     <>
       <Link to="/dashboard" className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-900"><ArrowLeft className="size-4" />All events</Link>
+
+      {/* Result of the last upload, only when something was skipped or failed */}
+      {uploadSummary && (uploadSummary.duplicates > 0 || uploadSummary.failed > 0) && (
+        <div className="mb-6 flex items-start gap-3 rounded-xl bg-white p-4 ring-1 ring-slate-200">
+          <div className="flex-1 space-y-1">
+            <p className="text-sm font-semibold">Upload finished</p>
+            <UploadSummaryText progress={uploadSummary} />
+          </div>
+          <button onClick={() => setUploadSummary(null)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100" aria-label="Dismiss"><X className="size-4" /></button>
+        </div>
+      )}
 
       {/* Header */}
       <div className="mb-8 flex flex-wrap items-start justify-between gap-4">

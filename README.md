@@ -33,6 +33,7 @@ private gallery of their own photos within seconds.
 **For organizers**
 - Sign up with email + password (with **email verification**) or **Google** — powered by [better-auth](https://www.better-auth.com).
 - Create events, drag-and-drop thousands of photos (uploaded straight to Cloudinary).
+- **Duplicate photos are skipped automatically** — a file picked twice, a renamed copy, or a photo the event already has is never uploaded or analysed again. After an interrupted upload, just re-add the whole folder: only the missing photos are sent.
 - Live progress while the AI analyses faces; the page updates by itself.
 - A QR code + link to share, downloadable as PNG.
 - Switch guest search on/off and **liveness protection** on/off at any time.
@@ -78,7 +79,7 @@ private gallery of their own photos within seconds.
                          live camera check ─▶ AI liveness ─▶ same face as selfie? ─▶ photos
 ```
 
-1. The browser uploads photos **directly to Cloudinary** using a short-lived signature from our API.
+1. The browser fingerprints each photo (SHA-256 of its bytes), asks the API which fingerprints the event already has, and uploads only new photos — **directly to Cloudinary** using a short-lived signature from our API. The database also refuses the same fingerprint twice in one event, so duplicates are blocked even if two uploads race.
 2. It then tells the API which photos arrived; the API saves them and queues one job per photo.
 3. The **worker** downloads a resized copy, asks the **AI service** for all face embeddings and stores them in **pgvector**.
 4. A guest's selfie goes through the same AI → its embedding is compared with the event's faces in SQL.
