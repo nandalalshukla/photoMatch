@@ -109,7 +109,7 @@ The goal was: **few moving parts, simple code, and a product guests can use with
 | Area | Technology |
 | --- | --- |
 | Web | React 19, TypeScript, Vite, Tailwind CSS 4, React Router, TanStack Query |
-| API + worker | Node.js 22, Express 5, TypeScript (run with `tsx`), Prisma, pg-boss |
+| API + worker | Node.js 22, Express 5, TypeScript (`tsx` for instant reloads in development, compiled with `tsc` for production), Prisma, pg-boss |
 | Auth | better-auth (email + password, email verification, Google, admin plugin) |
 | AI service | Python 3.12, FastAPI, InsightFace (`buffalo_l`), ONNX Runtime, MiniFASNet anti-spoofing |
 | Database | PostgreSQL 16 + pgvector |
@@ -384,9 +384,9 @@ Production = **one Node server** (API + built web app on the same domain), **one
 
 ```bash
 npm ci
-npm run build                          # builds the web app into apps/web/dist
+npm run build                          # web app → apps/web/dist, API TypeScript → apps/api/dist (plain JavaScript)
 npm run db:deploy -w apps/api          # applies migrations
-npm start                              # API (serves the web app too) + worker
+npm start                              # runs the compiled API (serves the web app too) + worker with plain `node`
 ```
 
 Run the AI service with `docker compose up -d ai` (or `uvicorn app.main:app --host 0.0.0.0 --port 8000`) and set `AI_SERVICE_URL` accordingly.
