@@ -30,17 +30,7 @@ class Settings(BaseSettings):
     # Where models are stored (downloaded automatically on first start).
     model_dir: Path = Path(__file__).resolve().parents[1] / "models"
 
-    # InsightFace model pack. "buffalo_l" = accurate detector + ArcFace recognizer.
-    face_model_name: str = "buffalo_l"
-
-    # Anti-spoofing (liveness) model: a MiniFASNet network trained on the
-    # CelebA-Spoof dataset, exported to ONNX (~2 MB). It looks at a face crop
-    # and outputs the probability that it is a real person rather than a
-    # printed photo or a phone/laptop screen.
-    liveness_model_url: str = (
-        "https://raw.githubusercontent.com/hairymax/Face-AntiSpoofing/main/"
-        "saved_models/AntiSpoofing_bin_1.5_128.onnx"
-    )
+    # Minimum "real person" probability from the anti-spoofing models (0–1).
     liveness_threshold: float = 0.7
 
     # Head-turn challenge (in degrees). The guest first looks straight at the

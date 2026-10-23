@@ -22,3 +22,6 @@ apps/ai/models/
 .vscode/
 .idea/
 *.log
+
+# Test images (downloaded on first test run)
+apps/ai/tests/.images/
