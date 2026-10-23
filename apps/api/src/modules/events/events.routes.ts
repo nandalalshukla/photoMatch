@@ -7,6 +7,7 @@
  *   PATCH  /api/events/:eventId                     rename / toggle guest access / toggle liveness
  *   DELETE /api/events/:eventId                     delete event, photos and face data
  *   POST   /api/events/:eventId/upload-signature    permission to upload to Cloudinary
+ *   POST   /api/events/:eventId/photos/check        which of these photos (by fingerprint) does the event already have?
  *   POST   /api/events/:eventId/photos              register uploaded photos
  *   GET    /api/events/:eventId/photos              list photos
  *   DELETE /api/events/:eventId/photos/:photoId     delete one photo
@@ -29,12 +30,16 @@ const updateSchema = z.object({
   guestAccess: z.boolean().optional(),
   livenessRequired: z.boolean().optional(),
 });
+// A SHA-256 fingerprint written as 64 hex characters.
+const sha256 = z.string().regex(/^[a-f0-9]{64}$/, 'must be a SHA-256 hex string');
+const checkSchema = z.object({ hashes: z.array(sha256).min(1).max(1000) }); // browser checks in chunks
 const photosSchema = z.object({
   photos: z
     .array(
       z.object({
         publicId: z.string().min(1).max(300),
         url: z.url().max(1000),
+        contentHash: sha256.optional(),
         width: z.number().int().positive().optional(),
         height: z.number().int().positive().optional(),
       }),
@@ -71,6 +76,11 @@ eventsRouter.delete('/:eventId', async (req, res) => {
 
 eventsRouter.post('/:eventId/upload-signature', async (req, res) => {
   res.json(await events.getUploadSignature(req.user!.id, param(req.params.eventId)));
+});
+
+eventsRouter.post('/:eventId/photos/check', async (req, res) => {
+  const { hashes } = checkSchema.parse(req.body);
+  res.json({ existing: await events.findExistingHashes(req.user!.id, param(req.params.eventId), hashes) });
 });
 
 eventsRouter.post('/:eventId/photos', async (req, res) => {

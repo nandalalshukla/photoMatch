@@ -135,6 +135,10 @@ model Photo {
   eventId      String
   event        Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
   cloudinaryId String      @unique // Cloudinary "public_id"; unique so retried uploads aren't duplicated
+  // SHA-256 fingerprint of the file's exact bytes, computed in the browser.
+  // The same photo can't be added to one event twice (see @@unique below).
+  // Empty for photos uploaded before this column existed.
+  contentHash  String?
   url          String // HTTPS URL of the original image
   width        Int?
   height       Int?
@@ -145,6 +149,7 @@ model Photo {
   faces   Face[]
   matches GuestMatch[]
 
+  @@unique([eventId, contentHash])
   @@index([eventId, status])
 }
 
