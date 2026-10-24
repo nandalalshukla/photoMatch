@@ -2,10 +2,10 @@
  * Account settings — everything is provided by better-auth's client:
  * update name, change password, see signed-in devices and sign them out.
  */
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Laptop, LogOut, Smartphone } from 'lucide-react';
-import { Badge, Button, Card, ErrorText, Input } from '../components/ui';
+import { Check, Laptop, LogOut, Smartphone } from 'lucide-react';
+import { Avatar, Badge, Button, Card, ErrorText, Input, PageHeader, Skeleton } from '../components/ui';
 import { authClient, useSession } from '../lib/auth-client';
 
 /** Very small user-agent reader — good enough to show "Chrome on Windows". */
@@ -16,10 +16,29 @@ function describeDevice(userAgent?: string | null) {
   return { label: `${browser} on ${os}`, mobile: /android|iphone|ipad/i.test(ua) };
 }
 
+/** A settings row: title + description on the left, the card on the right. */
+function Section({ title, description, children }: { title: string; description: string; children: ReactNode }) {
+  return (
+    <section className="grid animate-enter gap-4 border-t border-stone-200/70 pt-8 first:border-t-0 first:pt-0 md:grid-cols-[240px_1fr] md:gap-10">
+      <div>
+        <h2 className="font-display text-2xl leading-tight text-ink">{title}</h2>
+        <p className="mt-1 text-sm leading-relaxed text-stone-500">{description}</p>
+      </div>
+      <Card>{children}</Card>
+    </section>
+  );
+}
+
+function Saved({ children }: { children: ReactNode }) {
+  if (!children) return null;
+  return <span className="inline-flex animate-fade-in items-center gap-1.5 text-sm font-medium text-emerald-600"><Check className="size-4" />{children}</span>;
+}
+
 export function AccountPage() {
   const { data: session, refetch } = useSession();
   const queryClient = useQueryClient();
   const [message, setMessage] = useState({ profile: '', password: '', passwordError: '' });
+  const [saving, setSaving] = useState<'profile' | 'password' | null>(null);
 
   const sessions = useQuery({
     queryKey: ['sessions'],
@@ -28,21 +47,26 @@ export function AccountPage() {
 
   const saveName = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setSaving('profile');
     await authClient.updateUser({ name: String(new FormData(event.currentTarget).get('name')) });
     await refetch();
-    setMessage((m) => ({ ...m, profile: 'Saved!' }));
+    setSaving(null);
+    setMessage((m) => ({ ...m, profile: 'Saved' }));
   };
 
   const changePassword = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    setSaving('password');
     const { error } = await authClient.changePassword({
       currentPassword: String(form.get('current')),
       newPassword: String(form.get('new')),
       revokeOtherSessions: true,
     });
+    setSaving(null);
     setMessage((m) => ({ ...m, password: error ? '' : 'Password changed. Other devices were signed out.', passwordError: error?.message ?? '' }));
-    if (!error) event.currentTarget.reset();
+    if (!error) formElement.reset();
   };
 
   const revoke = async (token: string) => {
@@ -57,60 +81,65 @@ export function AccountPage() {
   const user = session?.user;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Account</h1>
+    <div className="mx-auto max-w-4xl">
+      <PageHeader title="Account settings" description="Manage your profile, password and the devices you're signed in on." />
 
-      <Card>
-        <h2 className="mb-4 font-semibold">Profile</h2>
-        <form onSubmit={saveName} className="space-y-4">
-          <Input label="Name" name="name" defaultValue={user?.name} required minLength={2} />
-          <div className="flex items-center gap-2 text-sm text-slate-600">
-            {user?.email}
-            {user?.emailVerified ? <Badge color="green">Verified</Badge> : <Badge color="amber">Not verified</Badge>}
-          </div>
-          <div className="flex items-center gap-3">
-            <Button type="submit">Save</Button>
-            {message.profile && <span className="text-sm text-emerald-600">{message.profile}</span>}
-          </div>
-        </form>
-      </Card>
+      <div className="space-y-8">
+        <Section title="Profile" description="Your name is shown in the dashboard and in emails we send you.">
+          <form onSubmit={saveName} className="space-y-5">
+            <div className="flex items-center gap-4">
+              <Avatar name={user?.name} image={user?.image} size="lg" />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-ink">{user?.email}</p>
+                <div className="mt-1">{user?.emailVerified ? <Badge color="green" dot>Verified</Badge> : <Badge color="amber" dot>Not verified</Badge>}</div>
+              </div>
+            </div>
+            <Input label="Name" name="name" defaultValue={user?.name} required minLength={2} />
+            <div className="flex items-center gap-3">
+              <Button type="submit" loading={saving === 'profile'}>Save changes</Button>
+              <Saved>{message.profile}</Saved>
+            </div>
+          </form>
+        </Section>
 
-      <Card>
-        <h2 className="mb-1 font-semibold">Password</h2>
-        <p className="mb-4 text-sm text-slate-500">Signed up with Google? Use "Forgot password" on the sign-in page to set one.</p>
-        <form onSubmit={changePassword} className="space-y-4">
-          <Input label="Current password" name="current" type="password" autoComplete="current-password" required />
-          <Input label="New password" name="new" type="password" autoComplete="new-password" required minLength={8} />
-          <ErrorText>{message.passwordError}</ErrorText>
-          <div className="flex items-center gap-3">
-            <Button type="submit">Change password</Button>
-            {message.password && <span className="text-sm text-emerald-600">{message.password}</span>}
-          </div>
-        </form>
-      </Card>
+        <Section title="Password" description='Signed up with Google? Use "Forgot password" on the sign-in page to set one.'>
+          <form onSubmit={changePassword} className="space-y-4">
+            <Input label="Current password" name="current" type="password" autoComplete="current-password" required />
+            <Input label="New password" name="new" type="password" autoComplete="new-password" required minLength={8} hint="At least 8 characters. Other devices will be signed out." />
+            <ErrorText>{message.passwordError}</ErrorText>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button type="submit" loading={saving === 'password'}>Change password</Button>
+              <Saved>{message.password}</Saved>
+            </div>
+          </form>
+        </Section>
 
-      <Card>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-semibold">Signed-in devices</h2>
-          {(sessions.data?.length ?? 0) > 1 && <Button variant="secondary" size="sm" onClick={revokeOthers}><LogOut className="size-4" />Sign out others</Button>}
-        </div>
-        <ul className="divide-y divide-slate-100">
-          {sessions.data?.map((s) => {
-            const device = describeDevice(s.userAgent);
-            const current = s.token === session?.session.token;
-            return (
-              <li key={s.id} className="flex items-center gap-3 py-3">
-                <span className="grid size-10 place-items-center rounded-xl bg-slate-100 text-slate-600">{device.mobile ? <Smartphone className="size-5" /> : <Laptop className="size-5" />}</span>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{device.label} {current && <Badge color="violet">This device</Badge>}</p>
-                  <p className="text-xs text-slate-500">{s.ipAddress || 'Unknown IP'} · last active {new Date(s.updatedAt).toLocaleString()}</p>
-                </div>
-                {!current && <Button variant="ghost" size="sm" onClick={() => revoke(s.token)}>Sign out</Button>}
-              </li>
-            );
-          })}
-        </ul>
-      </Card>
+        <Section title="Signed-in devices" description="Sign out anywhere you don't recognise.">
+          <div className="-my-2 flex items-center justify-between gap-3 pb-3">
+            <p className="text-sm text-stone-500">{sessions.data ? `${sessions.data.length} active session${sessions.data.length === 1 ? '' : 's'}` : ' '}</p>
+            {(sessions.data?.length ?? 0) > 1 && <Button variant="secondary" size="sm" onClick={revokeOthers}><LogOut className="size-4" />Sign out others</Button>}
+          </div>
+          <ul className="divide-y divide-stone-100">
+            {sessions.isLoading && Array.from({ length: 2 }, (_, i) => (
+              <li key={i} className="flex items-center gap-3 py-3"><Skeleton className="size-10 rounded-xl" /><div className="flex-1 space-y-2"><Skeleton className="h-3.5 w-40" /><Skeleton className="h-3 w-56" /></div></li>
+            ))}
+            {sessions.data?.map((s) => {
+              const device = describeDevice(s.userAgent);
+              const current = s.token === session?.session.token;
+              return (
+                <li key={s.id} className="flex items-center gap-3 py-3">
+                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-stone-100 text-stone-600">{device.mobile ? <Smartphone className="size-5" /> : <Laptop className="size-5" />}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-ink">{device.label} {current && <Badge color="violet">This device</Badge>}</p>
+                    <p className="truncate text-xs text-stone-500">{s.ipAddress || 'Unknown IP'} · last active {new Date(s.updatedAt).toLocaleString()}</p>
+                  </div>
+                  {!current && <Button variant="ghost" size="sm" onClick={() => revoke(s.token)}>Sign out</Button>}
+                </li>
+              );
+            })}
+          </ul>
+        </Section>
+      </div>
     </div>
   );
 }

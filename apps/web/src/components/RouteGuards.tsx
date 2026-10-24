@@ -12,7 +12,7 @@ export function RequireAuth() {
   const location = useLocation();
   // Spinner only on the very first load. better-auth re-checks the session after
   // actions like "update name"; unmounting the page then would lose its state.
-  if (isPending && !data) return <Spinner />;
+  if (isPending && !data) return <Spinner className="min-h-dvh" />;
   if (!data) return <Navigate to={`/sign-in?next=${encodeURIComponent(location.pathname)}`} replace />;
   return <Outlet />;
 }
