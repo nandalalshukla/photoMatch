@@ -144,3 +144,35 @@ def test_anti_spoof_model_tells_real_from_printed_photo(client):
     fake_score = anti_spoof.real_probability(fake, engine.single_face(fake))
     threshold = get_settings().liveness_threshold
     assert real_score >= threshold > fake_score, (real_score, fake_score)
+
+
+def burst(front: list[np.ndarray], turned: list[np.ndarray]):
+    """Multipart files for a burst of frames: several `front` and `turned` fields."""
+    return [("front", ("f.jpg", jpeg(img))) for img in front] + [("turned", ("t.jpg", jpeg(img))) for img in turned]
+
+
+BLANK = np.full((300, 300, 3), 200, dtype=np.uint8)  # no face (e.g. a blurry frame)
+
+
+def test_liveness_picks_best_frames_from_bursts(client):
+    """
+    The straight-on frame is chosen from the front burst and the most-turned
+    frame from the turn burst, wherever they are in the burst; frames without a
+    face are skipped. (These two faces are different people, so the check then
+    stops at DIFFERENT_PEOPLE — which proves the right frames were chosen.)
+    """
+    files = burst(front=[TURNED_FACE, STRAIGHT_FACE], turned=[STRAIGHT_FACE, BLANK, TURNED_FACE])
+    body = client.post("/liveness", files=files, headers=HEADERS).json()
+    assert abs(body["frontYaw"]) < 15  # STRAIGHT_FACE was picked as the front frame
+    assert abs(body["turnedYaw"]) > 45  # TURNED_FACE was picked as the turned frame
+    assert body["reason"] == "DIFFERENT_PEOPLE"
+
+
+def test_liveness_burst_without_any_face(client):
+    files = burst(front=[STRAIGHT_FACE], turned=[BLANK, BLANK])
+    assert client.post("/liveness", files=files, headers=HEADERS).json()["detail"]["code"] == "NO_FACE"
+
+
+def test_liveness_rejects_too_many_frames(client):
+    files = burst(front=[STRAIGHT_FACE] * 7, turned=[STRAIGHT_FACE])
+    assert client.post("/liveness", files=files, headers=HEADERS).status_code == 413

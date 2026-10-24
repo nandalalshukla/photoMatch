@@ -340,10 +340,14 @@ person who sent the selfie, physically in front of the camera.**
 **What happens when a guest opens a protected gallery**
 
 1. The API returns `locked: true` and **no photos**.
-2. The page opens the front camera and captures two frames, 3 seconds apart:
-   *look straight* → *turn your head to the side*.
-3. The API forwards both frames to the AI service (`POST /liveness`), which checks:
-   - **Head turn** (3-D landmark model from the `buffalo_l` pack): frame 1 is facing the camera (|yaw| ≤ 15°) and frame 2 is turned by ≥ 20°.
+2. A guided camera screen walks the guest through it (intro with tips → face in the oval → **"I'm ready"** →
+   3-2-1 → *hold still, look straight* → animated arrow: *slowly turn your head to your left*). Nothing is
+   captured before the guest presses "I'm ready".
+   Instead of one photo at an exact moment, the page captures **bursts**: 4 frames while looking straight
+   and 12 frames (≈3.6 s) while turning.
+3. The API forwards the bursts to the AI service (`POST /liveness`). It keeps the most straight-on frame and
+   the most-turned frame — so a slow or late turn still passes — and checks:
+   - **Head turn** (3-D landmark model from the `buffalo_l` pack): the straight frame faces the camera (|yaw| ≤ 15°) and the turned frame is turned by ≥ 20°.
      A printed photo can't turn — even tilting it doesn't change the measured yaw.
    - **Same person in both frames** (embedding similarity ≥ 0.3), so nobody can mix a victim's photo with their own moving head.
    - **Anti-spoofing** (two MiniFASNet models from the Silent-Face-Anti-Spoofing project, looking at the face at 2.7× and 4× zoom): both frames must score ≥ `LIVENESS_THRESHOLD` as "real", which catches printed photos and phone/laptop screens. On the project's sample images a live selfie scores 1.00 and a photographed print 0.15.
@@ -377,7 +381,7 @@ cd apps/ai && source .venv/bin/activate && pip install pytest httpx && python -m
 
 What was verified while building this project:
 
-- **AI tests (12):** face detection on a group photo, selfie → correct person found (similarity > 0.6, others < 0.3), no-face / multiple-faces / invalid-image errors, liveness rejects no head turn, not facing camera, and different people; anti-spoof model scores a live selfie as real and a photographed print as fake.
+- **AI tests (15):** face detection on a group photo, selfie → correct person found (similarity > 0.6, others < 0.3), no-face / multiple-faces / invalid-image errors, liveness rejects no head turn, not facing camera, and different people; anti-spoof model scores a live selfie as real and a photographed print as fake; bursts pick the right frames, skip frames without a face, and are size-limited.
 - **Model port check:** our ONNX Runtime code was compared with the `insightface` package on 11 images (group, flipped, rotated, cropped, resized): identical faces found, identical boxes, embeddings identical (cosine ≥ 0.999999), head angle within ~2°.
 - **Full pipeline (33 checks)** against the real database and AI models, with Telegram/WhatsApp/Cloudinary servers simulated: sign-up → blocked until verified → sign-in; event creation; worker indexing; Telegram `/start` + selfie → correct matches; WhatsApp signed webhook + verify handshake + bad-signature rejection; gallery locked; head-not-turned and multiple-face rejections; forwarded link (different face) rejected; correct face unlocks; forged cookie rejected; lockout after 5 attempts; guest access off closes page, gallery and bot; event deletion cascades all face data.
 - **Browser run (Chromium):** landing, sign-up, verify link, create event, event page, guest page (mobile), live camera check with a webcam feed (correctly asked to turn the head), gallery, ZIP download, 404 page; production build served by the API with strict CSP — no console errors.
@@ -444,6 +448,7 @@ deployment, add a privacy notice, get consent, and define how long data is kept.
 | Bot doesn't answer | `APP_URL` must be the public HTTPS tunnel URL; re-run `npm run bots:setup -w apps/api`. Check the `api` terminal for `[bot]` errors. |
 | Google sign-in "redirect_uri_mismatch" | The redirect URI in Google Cloud must be exactly `<APP_URL>/api/auth/callback/google`. |
 | Camera doesn't open on the gallery | Browsers only allow the camera on `https://` or `localhost`. |
+| Liveness keeps failing for a real person | Look in the `npm run dev` window for a `[liveness]` line: it shows the reason, both head angles, the "real person" score and the selfie match score (no images are logged), so you can see which check is too strict. |
 | Liveness always says "SPOOF_DETECTED" | Improve lighting, or lower `LIVENESS_THRESHOLD` slightly (e.g. 0.6). |
 | AI service: `pip install` fails building a package | Use Python 3.11–3.13 (3.14 may not have pre-built packages yet). The service needs no compiler. |
 | Too many / too few photos matched | Raise / lower `FACE_MATCH_THRESHOLD` (default 0.45). |

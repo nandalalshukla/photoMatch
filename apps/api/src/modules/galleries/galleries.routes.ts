@@ -8,7 +8,8 @@
  * ---------------------------------------------------------------
  * Gallery links can be forwarded. To make sure only the guest themself can
  * open their photos, the page first asks for a live face check:
- *   1. The browser captures two webcam frames: looking straight, then head turned.
+ *   1. The browser captures two short bursts of webcam frames: looking straight,
+ *      then turning the head. The AI service keeps the best frame of each burst.
  *   2. The AI service checks it's a real, present person (anti-spoof model + head turn).
  *   3. We compare that live face with the selfie the guest sent to the bot.
  *   4. If both pass, we set a signed, httpOnly cookie that unlocks this one
@@ -29,8 +30,13 @@ export const galleriesRouter = Router();
 const PASS_MINUTES = 30;
 const MAX_LIVENESS_ATTEMPTS = 5;
 
-// Webcam frames are kept in memory only (never written to disk), max 5 MB each.
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024, files: 2 } });
+// Webcam frames are kept in memory only (never written to disk), max 2 MB each.
+const MAX_FRONT_FRAMES = 6;
+const MAX_TURNED_FRAMES = 12;
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024, files: MAX_FRONT_FRAMES + MAX_TURNED_FRAMES },
+});
 
 // Liveness is expensive and security-sensitive: max 10 tries per minute per IP.
 const livenessLimiter = rateLimit({ windowMs: 60_000, limit: 10, standardHeaders: true, legacyHeaders: false });
@@ -98,8 +104,9 @@ const failureMessages: Record<string, string> = {
   NO_FACE: "We couldn't see your face. Make sure it's well lit and inside the frame.",
   MULTIPLE_FACES: 'Only you should be in front of the camera.',
   INVALID_IMAGE: 'The camera image could not be read. Please try again.',
-  NOT_FACING_CAMERA: 'Look straight at the camera for the first photo.',
-  HEAD_NOT_TURNED: 'Turn your head a bit more to the side for the second photo.',
+  NOT_FACING_CAMERA: 'Look straight into the camera (not at the screen) during the countdown, then turn when the arrow appears.',
+  HEAD_NOT_TURNED:
+    "We didn't see your head turn enough. When the arrow appears, slowly turn your head until you're looking past the edge of your screen — like glancing over your shoulder.",
   DIFFERENT_PEOPLE: 'Both photos must show the same person.',
   SPOOF_DETECTED: "We couldn't confirm a live person. Use your real face, not a photo or screen.",
   FACE_MISMATCH: "This face doesn't match the selfie sent for this gallery.",
@@ -108,7 +115,10 @@ const failureMessages: Record<string, string> = {
 galleriesRouter.post(
   '/:searchId/liveness',
   livenessLimiter,
-  upload.fields([{ name: 'front', maxCount: 1 }, { name: 'turned', maxCount: 1 }]),
+  upload.fields([
+    { name: 'front', maxCount: MAX_FRONT_FRAMES },
+    { name: 'turned', maxCount: MAX_TURNED_FRAMES },
+  ]),
   async (req, res) => {
     const searchId = String(req.params.searchId);
     const search = await findSearch(searchId);
@@ -119,9 +129,9 @@ galleriesRouter.post(
     }
 
     const files = req.files as Record<string, Express.Multer.File[]> | undefined;
-    const front = files?.front?.[0]?.buffer;
-    const turned = files?.turned?.[0]?.buffer;
-    if (!front || !turned) throw new HttpError(400, 'Two camera frames are required');
+    const front = files?.front?.map((file) => file.buffer) ?? [];
+    const turned = files?.turned?.map((file) => file.buffer) ?? [];
+    if (!front.length || !turned.length) throw new HttpError(400, 'Camera frames are missing');
 
     // Count the attempt BEFORE checking, so failed tries can't be repeated forever.
     await prisma.guestSearch.update({ where: { id: searchId }, data: { livenessAttempts: { increment: 1 } } });
@@ -130,13 +140,21 @@ galleriesRouter.post(
     try {
       const result = await aiClient.liveness(front, turned);
       reason = result.reason;
+      let similarity: number | null = null;
       if (result.passed && result.embedding) {
-        const similarity = await similarityToSelfie(searchId, result.embedding);
+        similarity = await similarityToSelfie(searchId, result.embedding);
         if (similarity === null || similarity < env.FACE_MATCH_THRESHOLD) reason = 'FACE_MISMATCH';
       }
+      // Scores only (no images) — handy for tuning thresholds when guests struggle.
+      console.log(
+        `[liveness] ${searchId.slice(0, 8)} ${reason ?? 'PASSED'} frames=${front.length}+${turned.length} ` +
+          `frontYaw=${result.frontYaw}° turnedYaw=${result.turnedYaw}° real=${result.realScore}` +
+          (similarity === null ? '' : ` selfieMatch=${similarity.toFixed(3)}`),
+      );
     } catch (error) {
       if (!(error instanceof AiImageError)) throw error;
       reason = error.code;
+      console.log(`[liveness] ${searchId.slice(0, 8)} ${reason}`);
     }
 
     if (reason) {

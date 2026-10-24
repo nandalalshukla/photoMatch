@@ -18,14 +18,18 @@ type LivenessResult = {
   passed: boolean;
   reason: 'NOT_FACING_CAMERA' | 'HEAD_NOT_TURNED' | 'DIFFERENT_PEOPLE' | 'SPOOF_DETECTED' | null;
   realScore: number;
+  frontYaw: number;
+  turnedYaw: number;
   embedding: number[] | null;
 };
 
-/** POST one or more images as multipart/form-data and return the JSON answer. */
-async function postImages<T>(path: string, images: Record<string, Buffer>): Promise<T> {
+/** POST images as multipart/form-data and return the JSON answer. A field may hold several images. */
+async function postImages<T>(path: string, images: Record<string, Buffer | Buffer[]>): Promise<T> {
   const form = new FormData();
-  for (const [field, data] of Object.entries(images)) {
-    form.append(field, new Blob([new Uint8Array(data)], { type: 'image/jpeg' }), `${field}.jpg`);
+  for (const [field, value] of Object.entries(images)) {
+    for (const data of Array.isArray(value) ? value : [value]) {
+      form.append(field, new Blob([new Uint8Array(data)], { type: 'image/jpeg' }), `${field}.jpg`);
+    }
   }
 
   const response = await fetch(`${env.AI_SERVICE_URL}${path}`, {
@@ -52,8 +56,8 @@ export const aiClient = {
   selfieEmbedding: async (image: Buffer) =>
     (await postImages<{ embedding: number[] }>('/faces/selfie', { image })).embedding,
 
-  /** Liveness verdict for two webcam frames (looking straight + head turned). */
-  liveness: (front: Buffer, turned: Buffer) => postImages<LivenessResult>('/liveness', { front, turned }),
+  /** Liveness verdict for two bursts of webcam frames (looking straight + turning the head). */
+  liveness: (front: Buffer[], turned: Buffer[]) => postImages<LivenessResult>('/liveness', { front, turned }),
 };
 
 /** Download any URL into memory (used for Cloudinary images and bot media). */
