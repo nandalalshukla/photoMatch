@@ -1,3 +1,4 @@
+import { LoaderCircle } from 'lucide-react';
 import type { UploadProgress } from '../lib/upload';
 import { ProgressBar } from './ui';
 
@@ -12,16 +13,17 @@ export function UploadProgressCard({ progress }: { progress: UploadProgress }) {
       : Math.round(((progress.done + progress.failed) / toUpload) * 100);
 
   return (
-    <div className="space-y-2 rounded-xl bg-brand-50/60 p-4 ring-1 ring-brand-100">
-      <div className="flex justify-between text-sm">
-        <span className="font-medium text-slate-700">
+    <div className="animate-enter space-y-3 rounded-2xl bg-paper p-4 ring-1 ring-stone-900/10 ring-inset">
+      <div className="flex items-center justify-between gap-3 text-sm">
+        <span className="flex items-center gap-2 font-medium text-stone-700">
+          <LoaderCircle className="size-4 animate-spin text-brand-600" />
           {checking
-            ? `Checking for duplicates… ${progress.checked} of ${progress.total}`
-            : `Uploading ${progress.done} of ${toUpload} photos`}
+            ? `Checking for duplicates… ${progress.checked.toLocaleString()} of ${progress.total.toLocaleString()}`
+            : `Uploading ${progress.done.toLocaleString()} of ${toUpload.toLocaleString()} photos`}
         </span>
-        <span className="font-semibold text-brand-700">{percent}%</span>
+        <span className="font-display text-2xl leading-none text-ink tabular-nums">{percent}%</span>
       </div>
-      <ProgressBar value={percent} />
+      <ProgressBar value={percent} active />
       <UploadSummaryText progress={progress} />
     </div>
   );
@@ -32,7 +34,7 @@ export function UploadSummaryText({ progress }: { progress: Pick<UploadProgress,
   return (
     <>
       {progress.duplicates > 0 && (
-        <p className="text-xs text-slate-600">
+        <p className="text-xs text-stone-600">
           {progress.duplicates} duplicate photo{progress.duplicates === 1 ? '' : 's'} skipped — already in this event or chosen twice.
         </p>
       )}
