@@ -21,9 +21,10 @@ from app.model_files import ensure_face_models
 
 @dataclass
 class DetectedFace:
-    embedding: list[float]  # 512 numbers, normalised to length 1
     score: float  # detector confidence (0–1)
     box: list[float]  # [left, top, right, bottom] in pixels
+    landmarks: np.ndarray  # 5 (x, y) points: eyes, nose, mouth corners
+    embedding: list[float] | None = None  # 512 numbers, normalised to length 1
     yaw: float | None = None  # head turn in degrees (0 = facing camera); only computed when asked for
 
     @property
@@ -53,26 +54,37 @@ class FaceEngine:
         # simple and safe: one image is analysed at a time.
         self._lock = Lock()
 
-    def detect(self, image: np.ndarray, with_pose: bool = False) -> list[DetectedFace]:
+    def detect(self, image: np.ndarray, with_pose: bool = False, with_embedding: bool = True) -> list[DetectedFace]:
         """
         Return every face found in the image, largest first.
-        `with_pose` also measures each head's yaw — only the liveness check needs
-        it, so event photos skip this extra model.
+        `with_pose` also measures each head's yaw — only the liveness check needs it.
+        `with_embedding=False` skips the (slowest) recognition step; the liveness
+        check first scans many frames and only embeds the two it keeps.
         """
         with self._lock:
             boxes, scores, landmarks = self._detector.detect(image)
             faces = [
                 DetectedFace(
-                    embedding=self._recognizer.embed(image, points).tolist(),
                     score=float(score),
                     box=[float(v) for v in box],
+                    landmarks=points,
+                    embedding=self._recognizer.embed(image, points).tolist() if with_embedding else None,
                     yaw=self._head_pose.yaw(image, box) if with_pose else None,
                 )
                 for box, score, points in zip(boxes, scores, landmarks)
             ]
         return sorted(faces, key=lambda f: f.area, reverse=True)
 
-    def single_face(self, image: np.ndarray, crowd_ratio: float = 0.6, with_pose: bool = False) -> DetectedFace:
+    def embed(self, image: np.ndarray, face: DetectedFace) -> DetectedFace:
+        """Fill in the embedding of a face found with `with_embedding=False`."""
+        if face.embedding is None:
+            with self._lock:
+                face.embedding = self._recognizer.embed(image, face.landmarks).tolist()
+        return face
+
+    def single_face(
+        self, image: np.ndarray, crowd_ratio: float = 0.6, with_pose: bool = False, with_embedding: bool = True
+    ) -> DetectedFace:
         """
         Return the one main face in a selfie.
 
@@ -80,7 +92,7 @@ class FaceEngine:
         second face is almost as big as the first one we cannot know who the
         guest is, so we refuse instead of guessing.
         """
-        faces = self.detect(image, with_pose=with_pose)
+        faces = self.detect(image, with_pose=with_pose, with_embedding=with_embedding)
         if not faces:
             raise NoFaceError("No face found in the photo")
         main = faces[0]

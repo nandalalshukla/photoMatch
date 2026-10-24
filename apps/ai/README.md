@@ -46,7 +46,7 @@ accept `multipart/form-data`.
 | `GET /health` | – | `{ status, modelsLoaded }` |
 | `POST /faces/detect` | `image` | `{ faces: [{ embedding[512], score, box }] }` |
 | `POST /faces/selfie` | `image` | `{ embedding[512], score }` or `422 { code: NO_FACE \| MULTIPLE_FACES \| INVALID_IMAGE }` |
-| `POST /liveness` | `front`, `turned` | `{ passed, reason, realScore, frontYaw, turnedYaw, embedding }` |
+| `POST /liveness` | `front` (1–6 frames), `turned` (1–12 frames) | `{ passed, reason, realScore, frontYaw, turnedYaw, embedding }` — computed on the most straight-on and the most-turned frame |
 
 `reason` is one of `NOT_FACING_CAMERA`, `HEAD_NOT_TURNED`, `DIFFERENT_PEOPLE`,
 `SPOOF_DETECTED` (or `null` when it passed).

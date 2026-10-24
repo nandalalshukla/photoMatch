@@ -10,8 +10,10 @@ We combine two simple checks, each stopping a different kind of cheating:
    4× the face box) and we average their answers.
 
 2. Active head-turn challenge.
-   The browser captures one frame looking straight at the camera and one frame
-   with the head turned. A still photo held up to the camera cannot turn.
+   The browser sends a short burst of frames while the guest looks straight at
+   the camera, and another burst while they turn their head. We keep the most
+   straight-on frame and the most-turned frame, so the guest doesn't have to
+   hit an exact moment. A still photo held up to the camera cannot turn.
    We also check both frames show the same person.
 
 Identity (is this the same person who sent the selfie?) is checked by the Node
@@ -26,7 +28,7 @@ import cv2
 import numpy as np
 import onnxruntime as ort
 
-from app.face_engine import DetectedFace
+from app.face_engine import DetectedFace, FaceEngine, MultipleFacesError, NoFaceError
 
 # The models ship with the code in apps/ai/weights/ (≈2 MB each, see weights/README.md).
 WEIGHTS_DIR = Path(__file__).resolve().parents[1] / "weights"
@@ -91,6 +93,41 @@ class AntiSpoofModel:
 
         crop = image[int(y1) : int(y2) + 1, int(x1) : int(x2) + 1]
         return cv2.resize(crop, (INPUT_SIZE, INPUT_SIZE))
+
+
+Frame = tuple[np.ndarray, DetectedFace]
+
+
+def _faces_in(engine: FaceEngine, images: list[np.ndarray]) -> list[Frame]:
+    """
+    Find the single main face (with its yaw) in each frame. Frames without a
+    usable face (blurry, out of frame, someone else in view) are skipped; only
+    if *no* frame is usable do we report why.
+    """
+    frames: list[Frame] = []
+    last_error: Exception = NoFaceError("No face found in the photo")
+    for image in images:
+        try:
+            # Skip the slow recognition step here; only the 2 chosen frames need it.
+            frames.append((image, engine.single_face(image, with_pose=True, with_embedding=False)))
+        except (NoFaceError, MultipleFacesError) as error:
+            last_error = error
+    if not frames:
+        raise last_error
+    return frames
+
+
+def pick_best_frames(engine: FaceEngine, front_images: list[np.ndarray], turned_images: list[np.ndarray]) -> tuple[Frame, Frame]:
+    """
+    From the "look straight" burst keep the frame facing the camera most directly;
+    from the "turn your head" burst keep the frame turned furthest from it.
+    """
+    front = min(_faces_in(engine, front_images), key=lambda frame: abs(frame[1].yaw or 0.0))
+    front_yaw = front[1].yaw or 0.0
+    turned = max(_faces_in(engine, turned_images), key=lambda frame: abs((frame[1].yaw or 0.0) - front_yaw))
+    for image, face in (front, turned):
+        engine.embed(image, face)
+    return front, turned
 
 
 @dataclass
