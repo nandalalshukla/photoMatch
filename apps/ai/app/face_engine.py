@@ -1,30 +1,31 @@
 """
-Face detection and recognition with InsightFace.
+Face detection and recognition — the API the rest of the service uses.
 
 Key idea: the recognition model turns every face into an "embedding" — a list
 of 512 numbers. Two photos of the same person produce embeddings that point in
 almost the same direction, so we can compare faces with simple maths
 (cosine similarity) instead of comparing pixels.
+
+The models themselves live in face_models.py.
 """
 
-import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from threading import Lock
 
 import numpy as np
-from insightface.app import FaceAnalysis
 
-# InsightFace uses an older scikit-image API that prints a harmless warning on every face.
-warnings.filterwarnings("ignore", category=FutureWarning, module="insightface")
+from app.face_models import FaceDetector, FaceRecognizer, HeadPose
+from app.model_files import ensure_face_models
 
 
 @dataclass
 class DetectedFace:
-    embedding: list[float]  # 512 numbers, normalised to length 1
     score: float  # detector confidence (0–1)
     box: list[float]  # [left, top, right, bottom] in pixels
-    yaw: float  # head rotation left/right in degrees (0 = facing camera)
+    landmarks: np.ndarray  # 5 (x, y) points: eyes, nose, mouth corners
+    embedding: list[float] | None = None  # 512 numbers, normalised to length 1
+    yaw: float | None = None  # head turn in degrees (0 = facing camera); only computed when asked for
 
     @property
     def area(self) -> float:
@@ -41,46 +42,49 @@ class MultipleFacesError(ValueError):
 
 
 class FaceEngine:
-    """Loads the InsightFace models once and answers face questions."""
+    """Loads the face models once and answers face questions."""
 
-    def __init__(self, model_name: str, model_dir: Path) -> None:
-        # Only the three models we actually need are loaded:
-        #   detection      → finds faces
-        #   recognition    → creates the 512-number embedding
-        #   landmark_3d_68 → estimates head pose (used by the liveness challenge)
-        # The model pack is downloaded automatically the first time (~300 MB).
-        self._app = FaceAnalysis(
-            name=model_name,
-            root=str(model_dir),
-            allowed_modules=["detection", "recognition", "landmark_3d_68"],
-            providers=["CPUExecutionProvider"],
-        )
-        self._app.prepare(ctx_id=-1, det_size=(640, 640), det_thresh=0.5)
+    def __init__(self, model_dir: Path) -> None:
+        # Downloads the models the first time (~290 MB).
+        folder = ensure_face_models(model_dir)
+        self._detector = FaceDetector(folder / "det_10g.onnx")
+        self._recognizer = FaceRecognizer(folder / "w600k_r50.onnx")
+        self._head_pose = HeadPose(folder / "1k3d68.onnx")
         # FastAPI runs requests in parallel threads. A lock keeps model usage
         # simple and safe: one image is analysed at a time.
         self._lock = Lock()
 
-    def detect(self, image: np.ndarray) -> list[DetectedFace]:
-        """Return every face found in the image, largest first."""
+    def detect(self, image: np.ndarray, with_pose: bool = False, with_embedding: bool = True) -> list[DetectedFace]:
+        """
+        Return every face found in the image, largest first.
+        `with_pose` also measures each head's yaw — only the liveness check needs it.
+        `with_embedding=False` skips the (slowest) recognition step; the liveness
+        check first scans many frames and only embeds the two it keeps.
+        """
         with self._lock:
-            raw_faces = self._app.get(image)
-
-        faces = []
-        for face in raw_faces:
-            embedding = np.asarray(face.normed_embedding, dtype=np.float32)
-            # pose = [pitch, yaw, roll]; we only need yaw (turning left/right).
-            yaw = float(face.pose[1]) if getattr(face, "pose", None) is not None else 0.0
-            faces.append(
+            boxes, scores, landmarks = self._detector.detect(image)
+            faces = [
                 DetectedFace(
-                    embedding=embedding.tolist(),
-                    score=float(face.det_score),
-                    box=[float(v) for v in face.bbox],
-                    yaw=yaw,
+                    score=float(score),
+                    box=[float(v) for v in box],
+                    landmarks=points,
+                    embedding=self._recognizer.embed(image, points).tolist() if with_embedding else None,
+                    yaw=self._head_pose.yaw(image, box) if with_pose else None,
                 )
-            )
+                for box, score, points in zip(boxes, scores, landmarks)
+            ]
         return sorted(faces, key=lambda f: f.area, reverse=True)
 
-    def single_face(self, image: np.ndarray, crowd_ratio: float = 0.6) -> DetectedFace:
+    def embed(self, image: np.ndarray, face: DetectedFace) -> DetectedFace:
+        """Fill in the embedding of a face found with `with_embedding=False`."""
+        if face.embedding is None:
+            with self._lock:
+                face.embedding = self._recognizer.embed(image, face.landmarks).tolist()
+        return face
+
+    def single_face(
+        self, image: np.ndarray, crowd_ratio: float = 0.6, with_pose: bool = False, with_embedding: bool = True
+    ) -> DetectedFace:
         """
         Return the one main face in a selfie.
 
@@ -88,7 +92,7 @@ class FaceEngine:
         second face is almost as big as the first one we cannot know who the
         guest is, so we refuse instead of guessing.
         """
-        faces = self.detect(image)
+        faces = self.detect(image, with_pose=with_pose, with_embedding=with_embedding)
         if not faces:
             raise NoFaceError("No face found in the photo")
         main = faces[0]

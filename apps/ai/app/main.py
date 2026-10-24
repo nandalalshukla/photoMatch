@@ -9,7 +9,7 @@ Endpoints
   GET  /health        → is the service up?
   POST /faces/detect  → all faces in an event photo (embeddings)
   POST /faces/selfie  → the single face in a guest selfie (embedding)
-  POST /liveness      → liveness check on two webcam frames
+  POST /liveness      → liveness check on bursts of webcam frames
 """
 
 import hmac
@@ -21,7 +21,7 @@ from fastapi.responses import JSONResponse
 from app.config import get_settings
 from app.face_engine import FaceEngine, MultipleFacesError, NoFaceError
 from app.images import InvalidImageError, decode_image
-from app.liveness import AntiSpoofModel, download_if_missing, evaluate_liveness
+from app.liveness import AntiSpoofModel, evaluate_liveness, pick_best_frames
 
 settings = get_settings()
 
@@ -31,10 +31,8 @@ models: dict = {}
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    liveness_path = settings.model_dir / "antispoof.onnx"
-    download_if_missing(settings.liveness_model_url, liveness_path)
-    models["faces"] = FaceEngine(settings.face_model_name, settings.model_dir)
-    models["liveness"] = AntiSpoofModel(liveness_path)
+    models["faces"] = FaceEngine(settings.model_dir)  # downloads face models on first start
+    models["liveness"] = AntiSpoofModel()  # small models shipped in apps/ai/weights/
     print("AI models loaded — ready.")
     yield
     models.clear()
@@ -94,17 +92,26 @@ def selfie_face(image: UploadFile = File(...)):
     return {"embedding": face.embedding, "score": face.score}
 
 
+MAX_FRONT_FRAMES = 6
+MAX_TURNED_FRAMES = 12
+
+
 @app.post("/liveness", dependencies=[Depends(require_secret)])
-def liveness(front: UploadFile = File(...), turned: UploadFile = File(...)):
+def liveness(front: list[UploadFile] = File(...), turned: list[UploadFile] = File(...)):
     """
-    `front`  = webcam frame looking straight at the camera
-    `turned` = webcam frame with the head turned to either side
+    `front`  = 1–6 webcam frames taken while looking straight at the camera
+    `turned` = 1–12 webcam frames taken while turning the head to either side
+    We keep the best frame of each burst (see pick_best_frames).
     """
+    if len(front) > MAX_FRONT_FRAMES or len(turned) > MAX_TURNED_FRAMES:
+        raise HTTPException(status_code=413, detail="Too many frames")
     engine: FaceEngine = models["faces"]
-    front_image, turned_image = read_image(front), read_image(turned)
+    best_front, best_turned = pick_best_frames(
+        engine, [read_image(f) for f in front], [read_image(f) for f in turned]
+    )
     result = evaluate_liveness(
-        front=(front_image, engine.single_face(front_image)),
-        turned=(turned_image, engine.single_face(turned_image)),
+        front=best_front,
+        turned=best_turned,
         model=models["liveness"],
         threshold=settings.liveness_threshold,
         max_front_yaw=settings.max_front_yaw,

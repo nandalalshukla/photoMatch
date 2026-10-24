@@ -25,8 +25,9 @@ with a simpler architecture, a new design, and three new features.
 8. [Liveness detection in detail](#liveness-detection-in-detail)
 9. [Tests](#tests)
 10. [Deploying](#deploying)
-11. [Security notes](#security-notes)
-12. [Troubleshooting](#troubleshooting)
+11. [Model licenses](#model-licenses)
+12. [Security notes](#security-notes)
+13. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -35,6 +36,7 @@ with a simpler architecture, a new design, and three new features.
 **For organizers**
 - Sign up with email + password (with **email verification**) or **Google** — powered by [better-auth](https://www.better-auth.com).
 - Create events, drag-and-drop thousands of photos (uploaded straight to Cloudinary).
+- **Duplicate photos are skipped automatically** — a file picked twice, a renamed copy, or a photo the event already has is never uploaded or analysed again. After an interrupted upload, just re-add the whole folder: only the missing photos are sent.
 - Live progress while the AI analyses faces; the page updates by itself.
 - A QR code + link to share, downloadable as PNG.
 - Switch guest search on/off and **liveness protection** on/off at any time.
@@ -69,7 +71,7 @@ with a simpler architecture, a new design, and three new features.
                              │   Worker ◀────────────────────┘ (webhook → API → job)
                              │      │
                              └──────┤ (3) image ──▶ AI service (Python)
-                                    │               InsightFace → 512-number face embedding
+                                    │               ArcFace (ONNX) → 512-number face embedding
                                     ▼
                          PostgreSQL + pgvector  (faces, events, users, jobs — one database)
                                     │
@@ -80,7 +82,7 @@ with a simpler architecture, a new design, and three new features.
                          live camera check ─▶ AI liveness ─▶ same face as selfie? ─▶ photos
 ```
 
-1. The browser uploads photos **directly to Cloudinary** using a short-lived signature from our API.
+1. The browser fingerprints each photo (SHA-256 of its bytes), asks the API which fingerprints the event already has, and uploads only new photos — **directly to Cloudinary** using a short-lived signature from our API. The database also refuses the same fingerprint twice in one event, so duplicates are blocked even if two uploads race.
 2. It then tells the API which photos arrived; the API saves them and queues one job per photo.
 3. The **worker** downloads a resized copy, asks the **AI service** for all face embeddings and stores them in **pgvector**.
 4. A guest's selfie goes through the same AI → its embedding is compared with the event's faces in SQL.
@@ -114,7 +116,7 @@ The goal was: **fewer moving parts, less code, same (or better) product.**
 | Web | React 19, TypeScript, Vite, Tailwind CSS 4, React Router, TanStack Query |
 | API + worker | Node.js 22, Express 5, TypeScript (`tsx` for instant reloads in development, compiled with `tsc` for production), Prisma, pg-boss |
 | Auth | better-auth (email + password, email verification, Google, admin plugin) |
-| AI service | Python 3.12, FastAPI, InsightFace (`buffalo_l`), ONNX Runtime, MiniFASNet anti-spoofing |
+| AI service | Python 3.12, FastAPI, ONNX Runtime + OpenCV running InsightFace's `buffalo_l` models (SCRFD detector, ArcFace R50, 3-D landmarks) and two MiniFASNet anti-spoofing models — no `insightface` package, no compiler needed |
 | Database | PostgreSQL 16 + pgvector |
 | Storage | Cloudinary |
 | Messaging | Telegram Bot API, WhatsApp Cloud API |
@@ -167,8 +169,8 @@ of non-obvious code explains *why* it is written that way.
 ### Prerequisites
 
 - **Node.js 22+** and npm
-- **Python 3.11+** (3.12 recommended)
-- **Docker** (for the database) — or your own PostgreSQL 16 with the `pgvector` extension
+- **Python 3.11–3.13** (3.12 recommended) — no C++ compiler needed, on any OS
+- **A PostgreSQL 16 database with the `pgvector` extension** — Docker (`docker compose up -d db`), a free cloud database such as [Neon](https://neon.tech) (use the *non-pooled* connection string), or a local install
 - ~1 GB free disk for AI models (downloaded automatically on first start)
 
 ### 1. Install and create your `.env`
@@ -198,8 +200,8 @@ prints which features are on when it starts:
 ### 2. Start the database and create the tables
 
 ```bash
-docker compose up -d db
-npm run db:migrate -w apps/api
+docker compose up -d db                # skip if you use Neon or your own Postgres (set DATABASE_URL instead)
+npm run db:deploy -w apps/api          # creates all tables
 ```
 
 ### 3. Start the AI service (separate terminal)
@@ -212,7 +214,7 @@ pip install -r requirements.txt
 uvicorn app.main:app --port 8000
 ```
 
-The first start downloads ~300 MB of models, then prints `AI models loaded — ready.`
+The first start downloads InsightFace's model pack (~290 MB, only 3 of its files are kept), then prints `AI models loaded — ready.`
 (Alternative: `docker compose up -d ai`.)
 
 ### 4. Start the API, worker and web app
@@ -338,13 +340,17 @@ person who sent the selfie, physically in front of the camera.**
 **What happens when a guest opens a protected gallery**
 
 1. The API returns `locked: true` and **no photos**.
-2. The page opens the front camera and captures two frames, 3 seconds apart:
-   *look straight* → *turn your head to the side*.
-3. The API forwards both frames to the AI service (`POST /liveness`), which checks:
-   - **Head turn** (head-pose model from InsightFace): frame 1 is facing the camera (|yaw| ≤ 15°) and frame 2 is turned by ≥ 20°.
+2. A guided camera screen walks the guest through it (intro with tips → face in the oval → **"I'm ready"** →
+   3-2-1 → *hold still, look straight* → animated arrow: *slowly turn your head to your left*). Nothing is
+   captured before the guest presses "I'm ready".
+   Instead of one photo at an exact moment, the page captures **bursts**: 4 frames while looking straight
+   and 12 frames (≈3.6 s) while turning.
+3. The API forwards the bursts to the AI service (`POST /liveness`). It keeps the most straight-on frame and
+   the most-turned frame — so a slow or late turn still passes — and checks:
+   - **Head turn** (3-D landmark model from the `buffalo_l` pack): the straight frame faces the camera (|yaw| ≤ 15°) and the turned frame is turned by ≥ 20°.
      A printed photo can't turn — even tilting it doesn't change the measured yaw.
    - **Same person in both frames** (embedding similarity ≥ 0.3), so nobody can mix a victim's photo with their own moving head.
-   - **Anti-spoofing** (MiniFASNet, trained on CelebA-Spoof): both face crops must score ≥ `LIVENESS_THRESHOLD` as "real", which catches printed photos and phone/laptop screens.
+   - **Anti-spoofing** (two MiniFASNet models from the Silent-Face-Anti-Spoofing project, looking at the face at 2.7× and 4× zoom): both frames must score ≥ `LIVENESS_THRESHOLD` as "real", which catches printed photos and phone/laptop screens. On the project's sample images a live selfie scores 1.00 and a photographed print 0.15.
 4. The API compares the live face with the **selfie's stored embedding** (≥ `FACE_MATCH_THRESHOLD`).
    Someone who received a forwarded link has a different face → `FACE_MISMATCH`.
 5. On success the API sets a **signed, httpOnly cookie** valid for 30 minutes, for this one gallery only.
@@ -375,7 +381,8 @@ cd apps/ai && source .venv/bin/activate && pip install pytest httpx && python -m
 
 What was verified while building this project:
 
-- **AI tests (11):** face detection on a group photo, selfie → correct person found (similarity > 0.6, others < 0.3), no-face / multiple-faces / invalid-image errors, liveness rejects no head turn, not facing camera, and different people.
+- **AI tests (15):** face detection on a group photo, selfie → correct person found (similarity > 0.6, others < 0.3), no-face / multiple-faces / invalid-image errors, liveness rejects no head turn, not facing camera, and different people; anti-spoof model scores a live selfie as real and a photographed print as fake; bursts pick the right frames, skip frames without a face, and are size-limited.
+- **Model port check:** our ONNX Runtime code was compared with the `insightface` package on 11 images (group, flipped, rotated, cropped, resized): identical faces found, identical boxes, embeddings identical (cosine ≥ 0.999999), head angle within ~2°.
 - **Full pipeline (33 checks)** against the real database and AI models, with Telegram/WhatsApp/Cloudinary servers simulated: sign-up → blocked until verified → sign-in; event creation; worker indexing; Telegram `/start` + selfie → correct matches; WhatsApp signed webhook + verify handshake + bad-signature rejection; gallery locked; head-not-turned and multiple-face rejections; forwarded link (different face) rejected; correct face unlocks; forged cookie rejected; lockout after 5 attempts; guest access off closes page, gallery and bot; event deletion cascades all face data.
 - **Browser run (Chromium):** landing, sign-up, verify link, create event, event page, guest page (mobile), live camera check with a webcam feed (correctly asked to turn the head), gallery, ZIP download, 404 page; production build served by the API with strict CSP — no console errors.
 
@@ -396,6 +403,23 @@ Run the AI service with `docker compose up -d ai` (or `uvicorn app.main:app --ho
 Set `NODE_ENV=production` and `APP_URL=https://your-domain.com` (HTTPS is required for cookies marked secure, the webcam, Telegram and WhatsApp). Managed Postgres providers like Neon, Supabase and Railway support `pgvector`.
 
 Scaling: run more workers (`npm run worker:start -w apps/api`) or more AI service replicas — pg-boss guarantees each job runs once.
+
+---
+
+## Model licenses
+
+| Model | Used for | License | What it means for you |
+| --- | --- | --- | --- |
+| InsightFace `buffalo_l` (SCRFD, ArcFace R50, 1k3d68) | finding faces, face embeddings, head angle | **Non-commercial research use only** (InsightFace's terms) | Fine for personal/hobby use. **Before using PhotoMatch AI commercially** (charging organizers, ads, running it for a business), buy a commercial license from InsightFace or switch to commercially licensed models. |
+| MiniFASNetV2 + MiniFASNetV1SE (Minivision) | liveness / anti-spoofing | **Apache 2.0** | Free for any use, including commercial. Converted to ONNX and shipped in `apps/ai/weights/` with its license. |
+
+The code of this project calls the models through ONNX Runtime and doesn't
+depend on any particular model pack: only `apps/ai/app/face_models.py` would
+change if you swap to other models.
+
+Also note: face embeddings are **biometric data** under many privacy laws
+(GDPR, India's DPDP Act, Illinois' BIPA...). If real guests use a public
+deployment, add a privacy notice, get consent, and define how long data is kept.
 
 ---
 
@@ -424,7 +448,9 @@ Scaling: run more workers (`npm run worker:start -w apps/api`) or more AI servic
 | Bot doesn't answer | `APP_URL` must be the public HTTPS tunnel URL; re-run `npm run bots:setup -w apps/api`. Check the `api` terminal for `[bot]` errors. |
 | Google sign-in "redirect_uri_mismatch" | The redirect URI in Google Cloud must be exactly `<APP_URL>/api/auth/callback/google`. |
 | Camera doesn't open on the gallery | Browsers only allow the camera on `https://` or `localhost`. |
+| Liveness keeps failing for a real person | Look in the `npm run dev` window for a `[liveness]` line: it shows the reason, both head angles, the "real person" score and the selfie match score (no images are logged), so you can see which check is too strict. |
 | Liveness always says "SPOOF_DETECTED" | Improve lighting, or lower `LIVENESS_THRESHOLD` slightly (e.g. 0.6). |
+| AI service: `pip install` fails building a package | Use Python 3.11–3.13 (3.14 may not have pre-built packages yet). The service needs no compiler. |
 | Too many / too few photos matched | Raise / lower `FACE_MATCH_THRESHOLD` (default 0.45). |
 
 ---

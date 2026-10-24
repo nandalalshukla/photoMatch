@@ -5,10 +5,8 @@ uvicorn[standard]==0.38.0
 python-multipart==0.0.20
 # Reads settings from the shared .env file
 pydantic-settings==2.11.0
-# Face detection + recognition (gives us 512-number face "fingerprints")
-insightface==0.7.3
-# Runs the ONNX AI models on the CPU
+# Runs the AI models (face detection, recognition, head pose, anti-spoofing) on the CPU
 onnxruntime==1.23.2
-# Image decoding / resizing (headless = no GUI dependencies)
+# Image decoding, resizing and geometry (headless = no GUI dependencies)
 opencv-python-headless==4.12.0.88
 numpy==2.2.6

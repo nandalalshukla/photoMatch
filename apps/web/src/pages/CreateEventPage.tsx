@@ -10,7 +10,7 @@ import { PhotoDropzone } from '../components/PhotoDropzone';
 import { UploadProgressCard } from '../components/UploadProgressCard';
 import { Button, Card, ErrorText, Input, Toggle } from '../components/ui';
 import { send } from '../lib/api';
-import { uploadEventPhotos, type UploadProgress } from '../lib/upload';
+import { mergeFiles, uploadEventPhotos, type UploadProgress } from '../lib/upload';
 import { useConfig } from '../lib/use-config';
 
 export function CreateEventPage() {
@@ -29,9 +29,15 @@ export function CreateEventPage() {
   const previews = useMemo(() => files.slice(0, 11).map((file) => URL.createObjectURL(file)), [files]);
   useEffect(() => () => previews.forEach(URL.revokeObjectURL), [previews]);
 
-  const addFiles = (incoming: File[], skipped: number) => {
-    setFiles((current) => [...current, ...incoming]);
-    setNotice(skipped ? `${skipped} file(s) skipped — only JPG, PNG or WEBP images are supported.` : '');
+  const addFiles = (incoming: File[], unsupported: number) => {
+    // Ignore files that are already in the list (picked twice).
+    const merged = mergeFiles(files, incoming);
+    setFiles(merged.files);
+    const notes = [
+      unsupported && `${unsupported} file(s) skipped — only JPG, PNG or WEBP images are supported.`,
+      merged.duplicates && `${merged.duplicates} file(s) were already selected.`,
+    ].filter(Boolean);
+    setNotice(notes.join(' '));
   };
 
   const submit = async (event: FormEvent) => {
@@ -40,9 +46,10 @@ export function CreateEventPage() {
     setError('');
     try {
       const { event: created } = await send<{ event: { id: string } }>('POST', '/events', { name, livenessRequired });
-      if (files.length) await uploadEventPhotos(created.id, files, setProgress);
+      const result = files.length ? await uploadEventPhotos(created.id, files, setProgress) : null;
       await queryClient.invalidateQueries({ queryKey: ['events'] });
-      navigate(`/dashboard/events/${created.id}`);
+      // Pass the duplicate/failed counts on, so the event page can show them.
+      navigate(`/dashboard/events/${created.id}`, { state: { uploadSummary: result } });
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Could not create the event');
       setBusy(false);

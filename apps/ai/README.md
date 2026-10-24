@@ -5,27 +5,36 @@ and returns numbers. It never talks to the database — the Node API stores and
 searches the results. Keeping it stateless means you can restart or scale it
 freely and there is only one place (the API) that owns data.
 
+It depends only on **FastAPI, ONNX Runtime, OpenCV and numpy**. Every package
+installs from a pre-built wheel, so no C++ compiler is needed on Windows,
+macOS or Linux.
+
 ## Models
 
-| Purpose | Model | Size | Downloaded from |
+| Purpose | Model | Where it comes from | License |
 | --- | --- | --- | --- |
-| Find faces + face "fingerprint" (512-number embedding) | InsightFace `buffalo_l` (RetinaFace detector + ArcFace recognizer) | ~300 MB | InsightFace GitHub release (automatic) |
-| Head pose for the turn challenge | `1k3d68` landmark model (part of `buffalo_l`) | — | same pack |
-| Liveness / anti-spoofing | MiniFASNet trained on CelebA-Spoof, ONNX (`AntiSpoofing_bin_1.5_128`) | 2 MB | `LIVENESS_MODEL_URL` (automatic) |
+| Find faces + 5 landmarks | SCRFD `det_10g` | InsightFace `buffalo_l` pack, downloaded on first start (~290 MB zip, 3 files kept) | Non-commercial |
+| Face "fingerprint" (512-number embedding) | ArcFace ResNet-50 `w600k_r50` | same pack | Non-commercial |
+| Head angle for the turn challenge | 3-D 68-landmark model `1k3d68` | same pack | Non-commercial |
+| Liveness / anti-spoofing | MiniFASNetV2 (2.7× crop) + MiniFASNetV1SE (4× crop) | Silent-Face-Anti-Spoofing, converted to ONNX, shipped in `weights/` | Apache 2.0 |
 
-Both are downloaded into `apps/ai/models/` on first start (git-ignored).
+> ⚠️ InsightFace's models are licensed for **non-commercial research use only**.
+> Personal and hobby use is fine; commercial use needs a license from
+> InsightFace (or swapping `face_models.py` to commercially licensed models).
 
-**Why these models?** InsightFace is the de-facto open-source standard for
-face recognition and runs fast on a normal CPU. MiniFASNet (from the
-Silent-Face-Anti-Spoofing project) is a tiny passive liveness model designed
-for exactly this use case: deciding from one camera frame whether the face is
-real or a printed/screen copy. Pairing it with a simple head-turn challenge
-blocks the two most common cheats (holding up a photo, replaying a picture)
-without needing heavy video models.
+**Why run the ONNX files directly instead of using the `insightface` package?**
+The package must compile C++ code during `pip install` (needs Microsoft Build
+Tools on Windows) and pulls in matplotlib, scikit-image, scikit-learn, scipy and
+more that we never use. `app/face_models.py` is a line-by-line port of the
+pre/post-processing we need. It was checked against the `insightface` package
+on 11 images: identical faces and boxes, identical embeddings (cosine ≥ 0.999999),
+head angle within ~2°.
 
-> Check the license of any model you ship commercially. You can point
-> `LIVENESS_MODEL_URL` at your own ONNX file with the same input format
-> (RGB, 128×128, crop 1.5× the face box, output `[real, spoof]`).
+**Why these liveness models?** MiniFASNet is a tiny passive anti-spoofing
+network built for exactly this job: deciding from one camera frame whether a
+face is real or a printed/screen copy. The original project is Apache-2.0
+licensed. Pairing it with the head-turn challenge blocks the two most common
+cheats (holding up a photo, replaying a picture) without heavy video models.
 
 ## Endpoints
 
@@ -37,19 +46,19 @@ accept `multipart/form-data`.
 | `GET /health` | – | `{ status, modelsLoaded }` |
 | `POST /faces/detect` | `image` | `{ faces: [{ embedding[512], score, box }] }` |
 | `POST /faces/selfie` | `image` | `{ embedding[512], score }` or `422 { code: NO_FACE \| MULTIPLE_FACES \| INVALID_IMAGE }` |
-| `POST /liveness` | `front`, `turned` | `{ passed, reason, realScore, frontYaw, turnedYaw, embedding }` |
+| `POST /liveness` | `front` (1–6 frames), `turned` (1–12 frames) | `{ passed, reason, realScore, frontYaw, turnedYaw, embedding }` — computed on the most straight-on and the most-turned frame |
 
-`reason` is one of `NOT_FACING_CAMERA`, `HEAD_NOT_TURNED`, `DIFFERENT_PEOPLE`, `SPOOF_DETECTED`
-(or `null` when it passed).
+`reason` is one of `NOT_FACING_CAMERA`, `HEAD_NOT_TURNED`, `DIFFERENT_PEOPLE`,
+`SPOOF_DETECTED` (or `null` when it passed).
 
 ## Run it
 
 ```bash
 cd apps/ai
-python3 -m venv .venv
+python3 -m venv .venv              # Windows: python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-uvicorn app.main:app --port 8000 --reload
+uvicorn app.main:app --port 8000
 ```
 
 Or with Docker from the repo root: `docker compose up -d ai`.
@@ -61,7 +70,8 @@ pip install pytest httpx
 python -m pytest
 ```
 
-The tests use the real models and InsightFace's bundled sample photo.
+The tests use the real models. Test images are downloaded on the first run
+into `tests/.images/` (git-ignored).
 
 ## Files
 
@@ -69,8 +79,11 @@ The tests use the real models and InsightFace's bundled sample photo.
 app/
   config.py       settings (read from the shared root .env)
   images.py       bytes → image, with resize
-  face_engine.py  InsightFace wrapper: detect faces, pick the single selfie face
-  liveness.py     anti-spoof model + head-turn rules
+  model_files.py  downloads the face models on first start
+  face_models.py  the 3 face models run with ONNX Runtime (detector, ArcFace, head pose)
+  face_engine.py  face API used by the routes: detect faces, pick the single selfie face
+  liveness.py     anti-spoof models + head-turn rules
   main.py         FastAPI routes
+weights/          MiniFASNet ONNX models + their Apache 2.0 license
 tests/test_api.py end-to-end tests
 ```
