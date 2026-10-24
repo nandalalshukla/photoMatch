@@ -1,0 +1,11 @@
+# Keep secrets and local build output out of the Docker image.
+# Secrets reach the containers at runtime via `env_file: .env` instead.
+.env
+.env.*
+!.env.example
+.git
+**/node_modules
+**/dist
+*.tsbuildinfo
+*.log
+apps/ai

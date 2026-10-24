@@ -1,0 +1,110 @@
+# Production: the whole app on one server.
+#
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Only Caddy is reachable from the internet (ports 80/443). The database, AI
+# service, API and worker talk to each other on Docker's private network.
+#
+# Needs these extra values in .env (on top of the usual ones):
+#   DOMAIN=photomatch.example.com        ← the host name people open
+#   APP_URL=https://photomatch.example.com
+#   POSTGRES_PASSWORD=<long random string>
+# DATABASE_URL and AI_SERVICE_URL are set below, so their .env values are ignored.
+
+x-logging: &logging
+  # Cap log files so they can't fill the disk.
+  driver: json-file
+  options:
+    max-size: '10m'
+    max-file: '3'
+
+x-node-env: &node-env
+  NODE_ENV: production
+  DATABASE_URL: postgresql://photomatch:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/photomatch
+  AI_SERVICE_URL: http://ai:8000
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: photomatch
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: photomatch
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U photomatch -d photomatch']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    logging: *logging
+
+  ai:
+    build: ./apps/ai
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      # Keep downloaded models between restarts (they are large).
+      - ai_models:/app/models
+    healthcheck:
+      test: ['CMD', 'python', '-c', "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      # The first start downloads ~290 MB of models.
+      start_period: 300s
+    logging: *logging
+
+  api:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment: *node-env
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'node', '-e', "fetch('http://localhost:3000/api/health').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    logging: *logging
+
+  worker:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment: *node-env
+    command: ['npm', 'run', 'worker:start', '-w', 'apps/api']
+    depends_on:
+      # The API applies migrations on start, so wait until it is healthy.
+      api:
+        condition: service_healthy
+      ai:
+        condition: service_started
+    logging: *logging
+
+  caddy:
+    image: caddy:2.10
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+    logging: *logging
+
+volumes:
+  db_data:
+  ai_models:
+  caddy_data:
+  caddy_config:
