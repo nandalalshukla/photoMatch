@@ -104,7 +104,7 @@ The goal was: **few moving parts, simple code, and a product guests can use with
 | Selfies | **Never stored** — only the 512-number embedding | Better privacy; the embedding is all we need for matching and the liveness identity check. |
 | Deployment | **One origin**: Vite proxies `/api` in dev; the API serves the built web app in production | Cookies "just work", no CORS setup. |
 | Config | **One root `.env`**, validated with zod at startup | One place to look; clear errors when something is missing. Optional features turn themselves off when their keys are empty. |
-| Styling | **Tailwind CSS** + a few small components (`ui.tsx`) | Consistent design, styles live next to the markup they affect. |
+| Styling | **Tailwind CSS** + a small design system (`components/ui/`, tokens in `index.css`) | Consistent design, styles live next to the markup they affect. |
 
 ### Tech stack
 
@@ -152,7 +152,7 @@ photoMatch/
     └── web/                  ← React app
         └── src/
             ├── lib/          api client, auth client, uploads, types
-            ├── components/   ui.tsx building blocks, layouts, LivenessCheck, dropzone
+            ├── components/   ui/ design system, layouts, LivenessCheck, dropzone
             └── pages/        Landing, Auth, Events, CreateEvent, EventDetail, Account, Admin, GuestEvent, Gallery
 ```
 

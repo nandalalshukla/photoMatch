@@ -3,9 +3,10 @@
  * - Totals and recent events come from our API (/api/admin/*).
  * - The user list and role/ban actions come from better-auth's admin plugin.
  */
+import type { ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ban, CalendarHeart, Images, ScanFace, Search, ShieldCheck, Users } from 'lucide-react';
-import { Badge, Button, Card, Spinner } from '../components/ui';
+import { Avatar, Badge, Button, Card, PageHeader, Skeleton, StatCard } from '../components/ui';
 import { api } from '../lib/api';
 import { authClient, useSession } from '../lib/auth-client';
 
@@ -14,6 +15,33 @@ type AdminEvent = {
   id: string; name: string; createdAt: string; guestAccess: boolean; livenessRequired: boolean;
   owner: { name: string; email: string }; _count: { photos: number; searches: number };
 };
+
+const th = 'px-5 py-2.5 text-xs font-medium text-stone-500';
+const td = 'px-5 py-3.5';
+
+/** A card with a title and a horizontally scrollable table. */
+function TableCard({ title, count, loading, columns, children }: { title: string; count?: number; loading: boolean; columns: string[]; children: ReactNode }) {
+  return (
+    <Card padded={false} className="overflow-hidden">
+      <div className="flex items-center gap-2 px-5 pt-5 pb-4">
+        <h2 className="font-display text-2xl leading-tight text-ink">{title}</h2>
+        {count !== undefined && <Badge>{count.toLocaleString()}</Badge>}
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead className="border-y border-stone-100 bg-stone-50/70"><tr>{columns.map((c, i) => <th key={i} className={th}>{c}</th>)}</tr></thead>
+          <tbody className="divide-y divide-stone-100">
+            {loading
+              ? Array.from({ length: 3 }, (_, i) => (
+                  <tr key={i}>{columns.map((_, j) => <td key={j} className={td}><Skeleton className="h-4 w-full max-w-36" /></td>)}</tr>
+                ))
+              : children}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  );
+}
 
 export function AdminPage() {
   const queryClient = useQueryClient();
@@ -36,74 +64,65 @@ export function AdminPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Admin</h1>
+      <PageHeader title="Admin" description="Everything happening across PhotoMatch AI." className="mb-0" />
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
-        {stats.map((s) => (
-          <Card key={s.label} className="!p-5">
-            <s.icon className="size-5 text-brand-600" />
-            <p className="mt-3 text-2xl font-bold">{s.value?.toLocaleString() ?? '–'}</p>
-            <p className="text-xs text-slate-500">{s.label}</p>
-          </Card>
-        ))}
+      <div className="grid animate-enter grid-cols-2 gap-4 md:grid-cols-5">
+        {stats.map((s) =>
+          overview.isLoading
+            ? <Skeleton key={s.label} className="h-[104px] rounded-2xl" />
+            : <StatCard key={s.label} label={s.label} value={s.value?.toLocaleString() ?? '–'} icon={s.icon} />,
+        )}
       </div>
 
-      <Card className="overflow-x-auto !p-0">
-        <h2 className="p-5 pb-3 font-semibold">Users</h2>
-        {users.isLoading ? <Spinner /> : (
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-xs text-slate-500 uppercase"><tr><th className="px-5 py-2">User</th><th className="px-5 py-2">Status</th><th className="px-5 py-2">Joined</th><th className="px-5 py-2" /></tr></thead>
-            <tbody className="divide-y divide-slate-100">
-              {users.data?.map((u) => (
-                <tr key={u.id}>
-                  <td className="px-5 py-3"><p className="font-medium">{u.name}</p><p className="text-xs text-slate-500">{u.email}</p></td>
-                  <td className="space-x-1 px-5 py-3">
-                    {u.role === 'admin' && <Badge color="violet">admin</Badge>}
-                    {u.emailVerified ? <Badge color="green">verified</Badge> : <Badge color="amber">unverified</Badge>}
-                    {u.banned && <Badge color="red">banned</Badge>}
-                  </td>
-                  <td className="px-5 py-3 text-slate-500">{new Date(u.createdAt).toLocaleDateString()}</td>
-                  <td className="space-x-1 px-5 py-3 text-right whitespace-nowrap">
-                    {u.id !== session?.user.id && (
-                      <>
-                        <Button variant="ghost" size="sm" onClick={async () => { await authClient.admin.setRole({ userId: u.id, role: u.role === 'admin' ? 'user' : 'admin' }); await reloadUsers(); }}>
-                          <ShieldCheck className="size-4" />{u.role === 'admin' ? 'Remove admin' : 'Make admin'}
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={async () => { await (u.banned ? authClient.admin.unbanUser({ userId: u.id }) : authClient.admin.banUser({ userId: u.id })); await reloadUsers(); }}>
-                          <Ban className="size-4" />{u.banned ? 'Unban' : 'Ban'}
-                        </Button>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Card>
+      <TableCard title="Users" count={users.data?.length} loading={users.isLoading} columns={['User', 'Status', 'Joined', '']}>
+        {users.data?.map((u) => (
+          <tr key={u.id} className="transition-colors hover:bg-stone-50/60">
+            <td className={td}>
+              <div className="flex items-center gap-3">
+                <Avatar name={u.name} image={u.image} size="sm" />
+                <div className="min-w-0"><p className="truncate font-medium text-ink">{u.name}</p><p className="truncate text-xs text-stone-500">{u.email}</p></div>
+              </div>
+            </td>
+            <td className={td}>
+              <div className="flex flex-wrap gap-1">
+                {u.role === 'admin' && <Badge color="violet">admin</Badge>}
+                {u.emailVerified ? <Badge color="green">verified</Badge> : <Badge color="amber">unverified</Badge>}
+                {u.banned && <Badge color="red">banned</Badge>}
+              </div>
+            </td>
+            <td className={`${td} whitespace-nowrap text-stone-500`}>{new Date(u.createdAt).toLocaleDateString()}</td>
+            <td className={`${td} text-right whitespace-nowrap`}>
+              {u.id !== session?.user.id && (
+                <div className="flex justify-end gap-1">
+                  <Button variant="ghost" size="sm" onClick={async () => { await authClient.admin.setRole({ userId: u.id, role: u.role === 'admin' ? 'user' : 'admin' }); await reloadUsers(); }}>
+                    <ShieldCheck className="size-4" />{u.role === 'admin' ? 'Remove admin' : 'Make admin'}
+                  </Button>
+                  <Button variant="ghost" size="sm" className={u.banned ? '' : 'text-red-600 hover:bg-red-50 hover:text-red-700'} onClick={async () => { await (u.banned ? authClient.admin.unbanUser({ userId: u.id }) : authClient.admin.banUser({ userId: u.id })); await reloadUsers(); }}>
+                    <Ban className="size-4" />{u.banned ? 'Unban' : 'Ban'}
+                  </Button>
+                </div>
+              )}
+            </td>
+          </tr>
+        ))}
+      </TableCard>
 
-      <Card className="overflow-x-auto !p-0">
-        <h2 className="p-5 pb-3 font-semibold">Latest events</h2>
-        {events.isLoading ? <Spinner /> : (
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-xs text-slate-500 uppercase"><tr><th className="px-5 py-2">Event</th><th className="px-5 py-2">Organizer</th><th className="px-5 py-2">Photos</th><th className="px-5 py-2">Searches</th><th className="px-5 py-2">Settings</th></tr></thead>
-            <tbody className="divide-y divide-slate-100">
-              {events.data?.map((e) => (
-                <tr key={e.id}>
-                  <td className="px-5 py-3 font-medium">{e.name}<p className="text-xs font-normal text-slate-500">{new Date(e.createdAt).toLocaleDateString()}</p></td>
-                  <td className="px-5 py-3 text-slate-600">{e.owner.email}</td>
-                  <td className="px-5 py-3">{e._count.photos.toLocaleString()}</td>
-                  <td className="px-5 py-3">{e._count.searches.toLocaleString()}</td>
-                  <td className="space-x-1 px-5 py-3">
-                    {e.guestAccess ? <Badge color="green">open</Badge> : <Badge>closed</Badge>}
-                    {e.livenessRequired && <Badge color="violet">liveness</Badge>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Card>
+      <TableCard title="Latest events" count={events.data?.length} loading={events.isLoading} columns={['Event', 'Organizer', 'Photos', 'Searches', 'Settings']}>
+        {events.data?.map((e) => (
+          <tr key={e.id} className="transition-colors hover:bg-stone-50/60">
+            <td className={td}><p className="font-medium text-ink">{e.name}</p><p className="text-xs text-stone-500">{new Date(e.createdAt).toLocaleDateString()}</p></td>
+            <td className={`${td} text-stone-600`}>{e.owner.email}</td>
+            <td className={`${td} tabular-nums`}>{e._count.photos.toLocaleString()}</td>
+            <td className={`${td} tabular-nums`}>{e._count.searches.toLocaleString()}</td>
+            <td className={td}>
+              <div className="flex flex-wrap gap-1">
+                {e.guestAccess ? <Badge color="green" dot>open</Badge> : <Badge dot>closed</Badge>}
+                {e.livenessRequired && <Badge color="violet">liveness</Badge>}
+              </div>
+            </td>
+          </tr>
+        ))}
+      </TableCard>
     </div>
   );
 }

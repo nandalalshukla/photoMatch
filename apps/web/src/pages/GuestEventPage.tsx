@@ -2,26 +2,49 @@
  * What guests see after scanning the QR code: the event name and buttons that
  * open WhatsApp or Telegram with the event code already filled in.
  */
+import type { ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'react-router';
-import { Clock3, Lock, SearchX, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Lock, ScanFace, SearchX, ShieldCheck } from 'lucide-react';
+import { TelegramIcon, WhatsAppIcon } from '../components/BrandIcons';
 import { Logo } from '../components/Logo';
-import { ButtonLink, EmptyState, Spinner } from '../components/ui';
+import { Alert, ButtonLink, EmptyState, Skeleton } from '../components/ui';
 import { api } from '../lib/api';
 import type { PublicEvent } from '../lib/types';
 
-function WhatsAppIcon() {
+const steps = ['Tap WhatsApp or Telegram below', 'Send the message, then one clear selfie', 'Open the private gallery link you receive'];
+
+/** An ink "open this chat app" button; the app's own color lives in its icon chip so it's still instantly recognisable. */
+function ChatButton({ href, app, icon, color }: { href: string; app: string; icon: ReactNode; color: string }) {
   return (
-    <svg viewBox="0 0 24 24" className="size-5" fill="currentColor" aria-hidden>
-      <path d="M17.5 14.4c-.3-.1-1.8-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.8 1-.9 1.2-.2.2-.3.2-.6.1-.3-.1-1.3-.5-2.4-1.5-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.6l.4-.5c.2-.2.2-.3.3-.5.1-.2 0-.4 0-.5l-.9-2.2c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.2 5.1 4.5.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.8-.7 2-1.4.2-.7.2-1.3.2-1.4-.1-.2-.3-.3-.6-.4zM12 21.8c-1.8 0-3.5-.5-5-1.4l-.4-.2-3.7 1 1-3.6-.2-.4A9.8 9.8 0 1 1 12 21.8zm8.4-18.2A11.8 11.8 0 0 0 1.7 17.9L0 24l6.3-1.7a11.8 11.8 0 0 0 5.7 1.4A11.8 11.8 0 0 0 20.4 3.6z" />
-    </svg>
+    <a href={href} className="group flex h-16 w-full items-center gap-3.5 rounded-full bg-ink pr-5 pl-2 text-paper transition duration-300 ease-editorial hover:-translate-y-0.5 hover:bg-ink-soft active:scale-[0.98]">
+      <span className="grid size-12 shrink-0 place-items-center rounded-full text-white" style={{ backgroundColor: color }}>{icon}</span>
+      <span className="flex-1 text-left leading-tight">
+        <span className="block text-xs text-white/60">Get my photos on</span>
+        <span className="block text-base font-semibold">{app}</span>
+      </span>
+      <ArrowRight className="size-4 opacity-70 transition-transform duration-300 group-hover:translate-x-1" />
+    </a>
   );
 }
-function TelegramIcon() {
+
+/** Shown while the organizer's photos are still being analysed. */
+function StillProcessing() {
   return (
-    <svg viewBox="0 0 24 24" className="size-5" fill="currentColor" aria-hidden>
-      <path d="M21.9 4.3 18.7 19.4c-.2 1.1-.9 1.3-1.8.8l-4.9-3.6-2.4 2.3c-.3.3-.5.5-1 .5l.3-5 9.1-8.2c.4-.4-.1-.6-.6-.2L6.2 13 1.4 11.5c-1-.3-1.1-1 .2-1.5L20.5 2.7c.9-.3 1.6.2 1.4 1.6z" />
-    </svg>
+    <div className="space-y-5 py-2 text-center">
+      <div className="relative mx-auto grid size-20 place-items-center overflow-hidden rounded-3xl bg-ink text-paper">
+        <ScanFace className="size-9" />
+        <span className="absolute inset-x-2 h-0.5 animate-scan rounded-full bg-brand-500 shadow-[0_0_14px_3px_rgb(223_86_54/0.7)]" />
+      </div>
+      <div>
+        <p className="font-display text-3xl text-ink">Still developing…</p>
+        <p className="mt-2 text-sm leading-relaxed text-stone-600">Our AI is finding every face in the photos. Keep this page open — it updates by itself — or come back in a few minutes.</p>
+      </div>
+      <p className="inline-flex items-center gap-2 rounded-full bg-paper px-3 py-1.5 text-xs font-medium text-stone-600 ring-1 ring-stone-900/10">
+        <span className="relative flex size-2"><span className="absolute inline-flex size-full animate-ping rounded-full bg-brand-400 opacity-75" /><span className="relative inline-flex size-2 rounded-full bg-brand-500" /></span>
+        Checking automatically
+      </p>
+    </div>
   );
 }
 
@@ -35,54 +58,62 @@ export function GuestEventPage() {
     refetchInterval: (query) => (query.state.data && query.state.data.state !== 'READY' ? 10_000 : false),
   });
 
+  const card = 'overflow-hidden rounded-[28px] bg-white shadow-elevated';
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-brand-50 to-white px-4 py-8">
+    <div className="min-h-dvh bg-paper px-4 py-6 sm:py-10">
       <div className="mx-auto max-w-md">
-        <div className="mb-8 flex justify-center"><Logo /></div>
+        <div className="mb-6 flex justify-center"><Logo /></div>
+
         {isLoading ? (
-          <Spinner label="Opening event" />
+          <div className={card}>
+            <Skeleton className="h-56 rounded-none" />
+            <div className="space-y-4 p-6"><Skeleton className="h-4 w-3/4" /><Skeleton className="h-4 w-2/3" /><Skeleton className="h-16 w-full rounded-full" /></div>
+          </div>
         ) : error || !event ? (
-          <div className="rounded-3xl bg-white shadow-sm ring-1 ring-slate-200">
+          <div className={card}>
             <EmptyState icon={<SearchX />} title="This link isn't active" body="It may be wrong, or the organizer has switched photo search off." action={<ButtonLink to="/" variant="secondary">About PhotoMatch AI</ButtonLink>} />
           </div>
         ) : (
-          <div className="overflow-hidden rounded-3xl bg-white shadow-xl shadow-brand-900/5 ring-1 ring-slate-200">
-            <div className="brand-gradient px-6 py-10 text-center text-white">
-              <p className="text-sm font-medium text-white/80">You're invited to find your photos from</p>
-              <h1 className="mt-2 text-3xl font-bold">{event.name}</h1>
+          <div className={`${card} animate-scale-in`}>
+            {/* Cover: a celebration photo with the event name set over it */}
+            <div className="relative h-60 overflow-hidden bg-ink">
+              <img src="/editorial/guest-sparkler.webp" alt="" className="absolute inset-0 size-full animate-develop object-cover" />
+              <div className="grain absolute inset-0 opacity-30" />
+              <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 p-6">
+                <p className="eyebrow text-white/60">Find your photos from</p>
+                <h1 className="mt-2 font-display text-[40px] leading-[1.02] text-balance text-white">{event.name}</h1>
+              </div>
             </div>
+
             <div className="space-y-6 p-6">
               {event.state === 'READY' ? (
                 <>
-                  <ol className="space-y-3 text-sm text-slate-700">
-                    {['Tap WhatsApp or Telegram below', 'Send the message, then send one clear selfie', 'Open the private gallery link you receive'].map((step, i) => (
-                      <li key={step} className="flex items-center gap-3">
-                        <span className="grid size-7 shrink-0 place-items-center rounded-full bg-brand-100 text-xs font-bold text-brand-700">{i + 1}</span>{step}
+                  <ol className="space-y-3.5">
+                    {steps.map((step, i) => (
+                      <li key={step} className="flex items-center gap-3.5 text-[15px] text-stone-700">
+                        <span className="w-6 shrink-0 font-display text-2xl leading-none text-stone-400">{i + 1}</span>{step}
                       </li>
                     ))}
                   </ol>
-                  <div className="space-y-3">
-                    {event.whatsappLink && (
-                      <a href={event.whatsappLink} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#25D366] px-6 py-3.5 font-semibold text-white shadow-sm transition hover:brightness-105"><WhatsAppIcon />Get my photos on WhatsApp</a>
-                    )}
-                    {event.telegramLink && (
-                      <a href={event.telegramLink} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#229ED9] px-6 py-3.5 font-semibold text-white shadow-sm transition hover:brightness-105"><TelegramIcon />Get my photos on Telegram</a>
-                    )}
+                  <div className="space-y-2.5">
+                    {event.whatsappLink && <ChatButton href={event.whatsappLink} app="WhatsApp" icon={<WhatsAppIcon />} color="#25D366" />}
+                    {event.telegramLink && <ChatButton href={event.telegramLink} app="Telegram" icon={<TelegramIcon />} color="#229ED9" />}
                     {!event.whatsappLink && !event.telegramLink && (
-                      <p className="rounded-xl bg-amber-50 p-3 text-center text-sm text-amber-800">No messaging app is connected yet. Please ask the organizer.</p>
+                      <Alert tone="warning">No messaging app is connected yet. Please ask the organizer.</Alert>
                     )}
                   </div>
                   {event.livenessRequired && (
-                    <p className="flex gap-2 rounded-xl bg-brand-50 p-3 text-xs leading-relaxed text-brand-900"><ShieldCheck className="size-4 shrink-0 text-brand-600" />This event is privacy-protected: before your gallery opens, you'll do a quick live face check with your camera.</p>
+                    <Alert icon={<ShieldCheck />}>This event is privacy-protected: before your gallery opens, you'll do a quick live face check with your camera.</Alert>
                   )}
                 </>
               ) : (
-                <div className="flex gap-3 rounded-xl bg-amber-50 p-4 text-sm text-amber-900">
-                  <Clock3 className="size-5 shrink-0" />
-                  <p><b>The photos are still being prepared.</b><br />This page updates automatically — keep it open or come back in a few minutes.</p>
-                </div>
+                <StillProcessing />
               )}
-              <p className="flex items-center justify-center gap-1.5 text-xs text-slate-500"><Lock className="size-3.5" />Your selfie is only compared with this event's photos and is never stored.</p>
+              <p className="border-t border-stone-100 pt-5 text-center text-xs text-balance text-stone-500">
+                <Lock className="mr-1 inline size-3.5 align-[-2px]" />Your selfie is only compared with this event's photos and is never stored.
+              </p>
             </div>
           </div>
         )}
