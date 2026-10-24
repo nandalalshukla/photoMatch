@@ -1,0 +1,51 @@
+# Deploy to the Azure VM on every push to main.
+#
+# The runner SSHes into the server with a key that exists only for GitHub
+# (secret SSH_PRIVATE_KEY), updates the code there and rebuilds with Docker.
+# Server setup and secrets: see the "Deploying" section of README.md.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  # Also allow running it by hand: Actions tab → Deploy → "Run workflow".
+  workflow_dispatch:
+
+# Never run two deploys at the same time. A push made while a deploy is
+# running waits for it to finish instead of fighting over the server.
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Set up SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Deploy on the server
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" 'bash -s' <<'EOF'
+          set -euo pipefail
+          cd ~/photoMatch
+          # Make the server's copy exactly match main. .env is untouched:
+          # it isn't tracked by git.
+          git fetch origin main
+          git reset --hard origin/main
+          docker compose -f docker-compose.prod.yml up -d --build
+          # Delete old, unused image layers so the disk doesn't fill up.
+          docker image prune -f
+          EOF
