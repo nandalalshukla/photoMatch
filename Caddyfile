@@ -1,0 +1,7 @@
+# Caddy sits in front of the API: it gets and renews the HTTPS certificate
+# for DOMAIN automatically and forwards every request to the Node server.
+# DOMAIN comes from .env (see docker-compose.prod.yml).
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy api:3000
+}
