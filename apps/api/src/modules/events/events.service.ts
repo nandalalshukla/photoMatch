@@ -105,12 +105,27 @@ export async function getUploadSignature(userId: string, eventId: string) {
   return createUploadSignature(eventId);
 }
 
-type UploadedPhoto = { publicId: string; url: string; width?: number; height?: number };
+type UploadedPhoto = { publicId: string; url: string; contentHash?: string; width?: number; height?: number };
+
+/**
+ * Which of these file fingerprints (SHA-256 hashes) does the event already have?
+ * The browser asks before uploading, so photos already in the event are skipped
+ * instead of being uploaded, stored and analysed a second time.
+ */
+export async function findExistingHashes(userId: string, eventId: string, hashes: string[]) {
+  await getOwnedEvent(eventId, userId);
+  const rows = await prisma.photo.findMany({
+    where: { eventId, contentHash: { in: hashes } },
+    select: { contentHash: true },
+  });
+  return rows.map((row) => row.contentHash!);
+}
 
 /**
  * Called by the browser after it uploaded photos to Cloudinary.
- * Saves them and queues face indexing. Safe to call twice with the same photos
- * (e.g. after a network retry): duplicates are skipped thanks to the unique cloudinaryId.
+ * Saves them and queues face indexing. Duplicates are skipped by the database:
+ *   • the same upload registered twice (network retry) → same cloudinaryId
+ *   • the same photo uploaded again → same contentHash in this event
  */
 export async function registerPhotos(userId: string, eventId: string, photos: UploadedPhoto[]) {
   await getOwnedEvent(eventId, userId);
@@ -129,12 +144,33 @@ export async function registerPhotos(userId: string, eventId: string, photos: Up
   }
 
   const created = await prisma.photo.createManyAndReturn({
-    data: photos.map((p) => ({ eventId, cloudinaryId: p.publicId, url: p.url, width: p.width, height: p.height })),
+    data: photos.map((p) => ({
+      eventId,
+      cloudinaryId: p.publicId,
+      contentHash: p.contentHash,
+      url: p.url,
+      width: p.width,
+      height: p.height,
+    })),
     skipDuplicates: true,
-    select: { id: true },
+    select: { id: true, cloudinaryId: true },
   });
   await enqueueIndexPhotos(created.map((p) => p.id));
-  return { added: created.length };
+
+  // A photo that was skipped because the event already has the same content
+  // (e.g. two browser tabs uploading the same file at once) was still uploaded
+  // to Cloudinary. Delete that extra copy so no orphan files are left behind.
+  // (Skipped retries of the *same* upload are left alone — that file is in use.)
+  const createdIds = new Set(created.map((p) => p.cloudinaryId));
+  const skipped = photos.filter((p) => !createdIds.has(p.publicId)).map((p) => p.publicId);
+  if (skipped.length) {
+    const inUse = await prisma.photo.findMany({ where: { cloudinaryId: { in: skipped } }, select: { cloudinaryId: true } });
+    const inUseIds = new Set(inUse.map((p) => p.cloudinaryId));
+    const orphans = skipped.filter((id) => !inUseIds.has(id));
+    await Promise.all(orphans.map((id) => deleteImage(id).catch((error) => console.error('Cloudinary delete failed', error))));
+  }
+
+  return { added: created.length, duplicates: photos.length - created.length };
 }
 
 export async function listPhotos(userId: string, eventId: string) {

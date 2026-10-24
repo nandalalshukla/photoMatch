@@ -16,6 +16,19 @@
   --color-brand-600: #7c3aed;
   --color-brand-700: #6d28d9;
   --color-brand-900: #2e1065;
+
+  /* Liveness check animations: a face turning to its left, and an arrow nudging left. */
+  --animate-head-turn: head-turn 2.4s ease-in-out infinite;
+  --animate-nudge-left: nudge-left 1s ease-in-out infinite;
+  @keyframes head-turn {
+    0%, 15% { transform: translateX(0); }
+    45%, 70% { transform: translateX(-9px); }
+    100% { transform: translateX(0); }
+  }
+  @keyframes nudge-left {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(-10px); }
+  }
 }
 
 body {
