@@ -16,7 +16,7 @@ type AdminEvent = {
   owner: { name: string; email: string }; _count: { photos: number; searches: number };
 };
 
-const th = 'px-5 py-2.5 text-xs font-medium text-stone-500';
+const th = 'px-5 py-2.5 text-xs font-medium text-muted';
 const td = 'px-5 py-3.5';
 
 /** A card with a title and a horizontally scrollable table. */
@@ -24,13 +24,13 @@ function TableCard({ title, count, loading, columns, children }: { title: string
   return (
     <Card padded={false} className="overflow-hidden">
       <div className="flex items-center gap-2 px-5 pt-5 pb-4">
-        <h2 className="font-display text-2xl leading-tight text-ink">{title}</h2>
+        <h2 className="text-base font-semibold text-ink">{title}</h2>
         {count !== undefined && <Badge>{count.toLocaleString()}</Badge>}
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
-          <thead className="border-y border-stone-100 bg-stone-50/70"><tr>{columns.map((c, i) => <th key={i} className={th}>{c}</th>)}</tr></thead>
-          <tbody className="divide-y divide-stone-100">
+          <thead className="border-y border-line bg-paper"><tr>{columns.map((c, i) => <th key={i} className={th}>{c}</th>)}</tr></thead>
+          <tbody className="divide-y divide-line">
             {loading
               ? Array.from({ length: 3 }, (_, i) => (
                   <tr key={i}>{columns.map((_, j) => <td key={j} className={td}><Skeleton className="h-4 w-full max-w-36" /></td>)}</tr>
@@ -64,7 +64,7 @@ export function AdminPage() {
 
   return (
     <div className="space-y-8">
-      <PageHeader title="Admin" description="Everything happening across PhotoMatch AI." className="mb-0" />
+      <PageHeader icon="🛡️" title="Admin" description="Everything happening across PhotoMatch AI." className="mb-0" />
 
       <div className="grid animate-enter grid-cols-2 gap-4 md:grid-cols-5">
         {stats.map((s) =>
@@ -76,11 +76,11 @@ export function AdminPage() {
 
       <TableCard title="Users" count={users.data?.length} loading={users.isLoading} columns={['User', 'Status', 'Joined', '']}>
         {users.data?.map((u) => (
-          <tr key={u.id} className="transition-colors hover:bg-stone-50/60">
+          <tr key={u.id} className="transition-colors hover:bg-paper">
             <td className={td}>
               <div className="flex items-center gap-3">
                 <Avatar name={u.name} image={u.image} size="sm" />
-                <div className="min-w-0"><p className="truncate font-medium text-ink">{u.name}</p><p className="truncate text-xs text-stone-500">{u.email}</p></div>
+                <div className="min-w-0"><p className="truncate font-medium text-ink">{u.name}</p><p className="truncate text-xs text-muted">{u.email}</p></div>
               </div>
             </td>
             <td className={td}>
@@ -90,14 +90,14 @@ export function AdminPage() {
                 {u.banned && <Badge color="red">banned</Badge>}
               </div>
             </td>
-            <td className={`${td} whitespace-nowrap text-stone-500`}>{new Date(u.createdAt).toLocaleDateString()}</td>
+            <td className={`${td} whitespace-nowrap text-muted`}>{new Date(u.createdAt).toLocaleDateString()}</td>
             <td className={`${td} text-right whitespace-nowrap`}>
               {u.id !== session?.user.id && (
                 <div className="flex justify-end gap-1">
                   <Button variant="ghost" size="sm" onClick={async () => { await authClient.admin.setRole({ userId: u.id, role: u.role === 'admin' ? 'user' : 'admin' }); await reloadUsers(); }}>
                     <ShieldCheck className="size-4" />{u.role === 'admin' ? 'Remove admin' : 'Make admin'}
                   </Button>
-                  <Button variant="ghost" size="sm" className={u.banned ? '' : 'text-red-600 hover:bg-red-50 hover:text-red-700'} onClick={async () => { await (u.banned ? authClient.admin.unbanUser({ userId: u.id }) : authClient.admin.banUser({ userId: u.id })); await reloadUsers(); }}>
+                  <Button variant="ghost" size="sm" className={u.banned ? '' : 'text-red-600 hover:bg-tag-red/70 hover:text-tag-red-text'} onClick={async () => { await (u.banned ? authClient.admin.unbanUser({ userId: u.id }) : authClient.admin.banUser({ userId: u.id })); await reloadUsers(); }}>
                     <Ban className="size-4" />{u.banned ? 'Unban' : 'Ban'}
                   </Button>
                 </div>
@@ -109,9 +109,9 @@ export function AdminPage() {
 
       <TableCard title="Latest events" count={events.data?.length} loading={events.isLoading} columns={['Event', 'Organizer', 'Photos', 'Searches', 'Settings']}>
         {events.data?.map((e) => (
-          <tr key={e.id} className="transition-colors hover:bg-stone-50/60">
-            <td className={td}><p className="font-medium text-ink">{e.name}</p><p className="text-xs text-stone-500">{new Date(e.createdAt).toLocaleDateString()}</p></td>
-            <td className={`${td} text-stone-600`}>{e.owner.email}</td>
+          <tr key={e.id} className="transition-colors hover:bg-paper">
+            <td className={td}><p className="font-medium text-ink">{e.name}</p><p className="text-xs text-muted">{new Date(e.createdAt).toLocaleDateString()}</p></td>
+            <td className={`${td} text-muted`}>{e.owner.email}</td>
             <td className={`${td} tabular-nums`}>{e._count.photos.toLocaleString()}</td>
             <td className={`${td} tabular-nums`}>{e._count.searches.toLocaleString()}</td>
             <td className={td}>

@@ -5,7 +5,7 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, Laptop, LogOut, Smartphone } from 'lucide-react';
-import { Avatar, Badge, Button, Card, ErrorText, Input, PageHeader, Skeleton } from '../components/ui';
+import { Avatar, Badge, Button, ErrorText, Input, PageHeader, Skeleton } from '../components/ui';
 import { authClient, useSession } from '../lib/auth-client';
 
 /** Very small user-agent reader — good enough to show "Chrome on Windows". */
@@ -19,19 +19,17 @@ function describeDevice(userAgent?: string | null) {
 /** A settings row: title + description on the left, the card on the right. */
 function Section({ title, description, children }: { title: string; description: string; children: ReactNode }) {
   return (
-    <section className="grid animate-enter gap-4 border-t border-stone-200/70 pt-8 first:border-t-0 first:pt-0 md:grid-cols-[240px_1fr] md:gap-10">
-      <div>
-        <h2 className="font-display text-2xl leading-tight text-ink">{title}</h2>
-        <p className="mt-1 text-sm leading-relaxed text-stone-500">{description}</p>
-      </div>
-      <Card>{children}</Card>
+    <section className="animate-enter border-t border-line pt-6">
+      <h2 className="font-semibold text-ink">{title}</h2>
+      <p className="mt-0.5 text-sm text-muted">{description}</p>
+      <div className="mt-5">{children}</div>
     </section>
   );
 }
 
 function Saved({ children }: { children: ReactNode }) {
   if (!children) return null;
-  return <span className="inline-flex animate-fade-in items-center gap-1.5 text-sm font-medium text-emerald-600"><Check className="size-4" />{children}</span>;
+  return <span className="inline-flex animate-fade-in items-center gap-1.5 text-sm text-[#0f7b6c]"><Check className="size-4" />{children}</span>;
 }
 
 export function AccountPage() {
@@ -81,10 +79,10 @@ export function AccountPage() {
   const user = session?.user;
 
   return (
-    <div className="mx-auto max-w-4xl">
-      <PageHeader title="Account settings" description="Manage your profile, password and the devices you're signed in on." />
+    <div className="max-w-2xl">
+      <PageHeader icon="⚙️" title="Settings" description="Manage your profile, password and the devices you're signed in on." />
 
-      <div className="space-y-8">
+      <div className="space-y-10">
         <Section title="Profile" description="Your name is shown in the dashboard and in emails we send you.">
           <form onSubmit={saveName} className="space-y-5">
             <div className="flex items-center gap-4">
@@ -116,10 +114,10 @@ export function AccountPage() {
 
         <Section title="Signed-in devices" description="Sign out anywhere you don't recognise.">
           <div className="-my-2 flex items-center justify-between gap-3 pb-3">
-            <p className="text-sm text-stone-500">{sessions.data ? `${sessions.data.length} active session${sessions.data.length === 1 ? '' : 's'}` : ' '}</p>
+            <p className="text-sm text-muted">{sessions.data ? `${sessions.data.length} active session${sessions.data.length === 1 ? '' : 's'}` : ' '}</p>
             {(sessions.data?.length ?? 0) > 1 && <Button variant="secondary" size="sm" onClick={revokeOthers}><LogOut className="size-4" />Sign out others</Button>}
           </div>
-          <ul className="divide-y divide-stone-100">
+          <ul className="divide-y divide-line">
             {sessions.isLoading && Array.from({ length: 2 }, (_, i) => (
               <li key={i} className="flex items-center gap-3 py-3"><Skeleton className="size-10 rounded-xl" /><div className="flex-1 space-y-2"><Skeleton className="h-3.5 w-40" /><Skeleton className="h-3 w-56" /></div></li>
             ))}
@@ -128,10 +126,10 @@ export function AccountPage() {
               const current = s.token === session?.session.token;
               return (
                 <li key={s.id} className="flex items-center gap-3 py-3">
-                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-stone-100 text-stone-600">{device.mobile ? <Smartphone className="size-5" /> : <Laptop className="size-5" />}</span>
+                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-paper text-muted">{device.mobile ? <Smartphone className="size-5" /> : <Laptop className="size-5" />}</span>
                   <div className="min-w-0 flex-1">
                     <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-ink">{device.label} {current && <Badge color="violet">This device</Badge>}</p>
-                    <p className="truncate text-xs text-stone-500">{s.ipAddress || 'Unknown IP'} · last active {new Date(s.updatedAt).toLocaleString()}</p>
+                    <p className="truncate text-xs text-muted">{s.ipAddress || 'Unknown IP'} · last active {new Date(s.updatedAt).toLocaleString()}</p>
                   </div>
                   {!current && <Button variant="ghost" size="sm" onClick={() => revoke(s.token)}>Sign out</Button>}
                 </li>
