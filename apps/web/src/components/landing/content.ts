@@ -1,48 +1,46 @@
 /**
  * Copy for the landing page, kept apart from the layout so wording can change
  * without touching JSX. Keep claims true to what the product actually does.
- * Photos live in /public/editorial (credits in CREDITS.md there).
  */
-import { Camera, Eye, Images, KeyRound, Lock, Power, ScanFace, Send, ShieldCheck, Zap } from 'lucide-react';
+import type { BadgeColor } from '../ui';
 
 export const navLinks = [
-  { href: '#demo', label: 'Demo' },
   { href: '#how', label: 'How it works' },
+  { href: '#features', label: 'Features' },
   { href: '#privacy', label: 'Privacy' },
   { href: '#faq', label: 'FAQ' },
 ];
 
-export const occasions = ['Weddings', 'Concerts', 'Conferences', 'Marathons', 'College fests', 'Birthdays', 'Corporate offsites', 'Graduations'];
-
 export const steps = [
-  { title: 'Upload the album', body: 'Drop in hundreds or thousands of event photos. Our AI finds every face in the background while you get on with your day.' },
-  { title: 'Share one QR code', body: 'Print it on a table card or put it on the big screen. Guests scan it with the camera they already have.' },
-  { title: 'Guests send a selfie', body: 'On WhatsApp or Telegram. Seconds later they get a private gallery with every photo they appear in.' },
+  { emoji: '📤', who: 'Organizer', title: 'Upload the event photos', body: 'Drop in the whole album — hundreds or thousands of photos. Our AI finds every face in the background.' },
+  { emoji: '📱', who: 'Guest', title: 'Scan the QR code', body: 'Put the QR code on a table card or the big screen. It opens WhatsApp or Telegram with the event already filled in.' },
+  { emoji: '🤳', who: 'Guest', title: 'Send a selfie, get your photos', body: 'One selfie is all it takes. Seconds later the guest gets a private gallery of only the photos they appear in.' },
 ];
 
-export const moments = [
-  { title: 'Weddings', note: 'Every guest, every table', image: 'moment-couple', alt: 'A couple on a bench by the sea' },
-  { title: 'Concerts', note: 'Front row to the back', image: 'moment-band', alt: 'A band playing on stage' },
-  { title: 'Festivals', note: 'Thousands of faces', image: 'moment-festival', alt: 'A festival crowd with hands raised' },
-  { title: 'Family days', note: 'For the ones who weren’t posing', image: 'moment-family', alt: 'A mother hugging her child in the street' },
-  { title: 'New Year’s Eve', note: 'Midnight, captured', image: 'moment-fireworks', alt: 'Fireworks over a city at night' },
-  { title: 'Live shows', note: 'Lights, smoke, faces', image: 'moment-concert', alt: 'Stage lights over a concert crowd' },
+export const occasions: { emoji: string; label: string; color: BadgeColor }[] = [
+  { emoji: '💍', label: 'Weddings', color: 'pink' },
+  { emoji: '🎤', label: 'Conferences', color: 'blue' },
+  { emoji: '🏃', label: 'Marathons', color: 'green' },
+  { emoji: '🎓', label: 'College fests', color: 'violet' },
+  { emoji: '🎉', label: 'Parties', color: 'amber' },
+  { emoji: '🏢', label: 'Corporate events', color: 'gray' },
+  { emoji: '🎂', label: 'Birthdays', color: 'orange' },
 ];
 
 export const features = [
-  { icon: ScanFace, title: 'Accurate face matching', body: 'State-of-the-art face recognition finds guests even in crowded group shots.' },
-  { icon: Send, title: 'WhatsApp & Telegram', body: 'Guests use the apps they already have. No downloads, no accounts, no passwords.' },
-  { icon: ShieldCheck, title: 'Liveness protection', body: 'An optional live face check before a gallery opens, so a forwarded link reveals nothing.' },
-  { icon: Zap, title: 'Live progress', body: 'Watch photos being analysed in real time and share the QR code the moment they are ready.' },
-  { icon: Images, title: 'One-tap download', body: 'Guests pick their favourites and save them all at once as a ZIP, or open any original.' },
-  { icon: Camera, title: 'Duplicate-proof uploads', body: 'Upload the same folder twice and only new photos are sent. Re-add a failed upload and only the missing ones go up.' },
+  { emoji: '🎯', title: 'Accurate face matching', body: 'Finds guests even in crowded group shots.' },
+  { emoji: '💬', title: 'WhatsApp & Telegram', body: 'Guests use apps they already have — no downloads, no accounts.' },
+  { emoji: '🛡️', title: 'Liveness check', body: 'Optional live face check, so a forwarded link reveals nothing.' },
+  { emoji: '⏱️', title: 'Live progress', body: 'Watch photos being analysed and share the moment they’re ready.' },
+  { emoji: '📦', title: 'Download in one tap', body: 'Guests save their favourites as a ZIP or open any original.' },
+  { emoji: '🧹', title: 'No duplicates', body: 'Upload the same folder twice — only new photos are added.' },
 ];
 
 export const privacyPoints = [
-  { icon: Lock, title: 'Selfies are never stored', body: 'A selfie becomes a mathematical face signature in memory. The image itself is never saved.' },
-  { icon: Eye, title: 'Liveness check', body: 'The guest turns their head on camera. Printed photos and screens fail, and so does a different face.' },
-  { icon: Power, title: 'One switch to close it all', body: 'Turn guest search off and the QR code, bots and every gallery link stop working instantly.' },
-  { icon: KeyRound, title: 'Locked down by default', body: 'Signed uploads, verified webhooks, strict security headers and rate limits on every entry point.' },
+  'Selfies are never stored — only a mathematical face signature is used for matching.',
+  'A gallery can require a live face check, so only the person in it can open it.',
+  'One switch turns guest search off and every link stops working instantly.',
+  'Deleting an event removes its photos and all face data.',
 ];
 
 export const faqs = [

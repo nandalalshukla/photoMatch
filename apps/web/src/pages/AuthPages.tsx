@@ -12,7 +12,7 @@ import { Button, ErrorText, Input } from '../components/ui';
 import { authClient } from '../lib/auth-client';
 import { useConfig } from '../lib/use-config';
 
-const linkClass = 'font-medium text-ink underline decoration-stone-300 underline-offset-4 transition hover:decoration-ink';
+const linkClass = 'text-brand-500 hover:underline';
 
 /** "Continue with Google" — only shown when Google keys are configured on the server. */
 function GoogleButton({ next }: { next: string }) {
@@ -28,8 +28,8 @@ function GoogleButton({ next }: { next: string }) {
       >
         <GoogleIcon />Continue with Google
       </Button>
-      <div className="eyebrow my-7 flex items-center gap-3 text-stone-400">
-        <span className="h-px flex-1 bg-stone-200" />or continue with email<span className="h-px flex-1 bg-stone-200" />
+      <div className="my-5 flex items-center gap-3 text-xs text-faint">
+        <span className="h-px flex-1 bg-line" />or<span className="h-px flex-1 bg-line" />
       </div>
     </>
   );
@@ -77,9 +77,9 @@ export function SignInPage() {
           <Link to="/forgot-password" className={linkClass}>Forgot password?</Link>
         </div>
         <ErrorText>{error}</ErrorText>
-        <Button type="submit" loading={loading} size="lg" className="w-full">Sign in</Button>
+        <Button type="submit" loading={loading} className="w-full">Sign in</Button>
       </form>
-      <p className="mt-6 text-center text-sm text-stone-500">
+      <p className="mt-6 text-center text-sm text-muted">
         New to PhotoMatch AI? <Link to="/sign-up" className={linkClass}>Create an account</Link>
       </p>
     </AuthLayout>
@@ -89,14 +89,11 @@ export function SignInPage() {
 /** Shown after sign-up and forgot-password: "check your inbox". */
 function CheckEmail({ email, text }: { email: string; text: string }) {
   return (
-    <div className="animate-scale-in rounded-3xl bg-white p-8 text-center ring-1 ring-stone-900/7">
-      <div className="relative mx-auto grid size-16 place-items-center rounded-full bg-ink text-paper">
-        <MailCheck className="size-6" />
-        <span className="absolute top-0.5 right-0.5 size-3 animate-pulse rounded-full bg-brand-500 ring-2 ring-white" />
-      </div>
-      <p className="mt-6 font-display text-3xl text-ink">Check your inbox</p>
-      <p className="mt-2 text-sm leading-relaxed text-stone-600">{text} <b className="font-semibold text-ink">{email}</b>.</p>
-      <p className="mt-1 text-xs text-stone-400">Can't find it? Check your spam folder.</p>
+    <div className="animate-scale-in rounded-lg bg-paper p-6 text-center">
+      <MailCheck className="mx-auto size-8 text-muted" />
+      <p className="mt-4 text-lg font-semibold text-ink">Check your inbox</p>
+      <p className="mt-1.5 text-sm leading-relaxed text-muted">{text} <b className="font-medium text-ink">{email}</b>.</p>
+      <p className="mt-1 text-xs text-faint">Can't find it? Check your spam folder.</p>
       <Link to="/sign-in" className={`mt-6 inline-flex items-center gap-1.5 text-sm ${linkClass}`}><ArrowLeft className="size-4" />Back to sign in</Link>
     </div>
   );
@@ -136,9 +133,9 @@ export function SignUpPage() {
             <Input label="Email" name="email" type="email" autoComplete="email" required />
             <Input label="Password" name="password" type="password" autoComplete="new-password" required minLength={8} hint="At least 8 characters." />
             <ErrorText>{error}</ErrorText>
-            <Button type="submit" loading={loading} size="lg" className="w-full">Create account</Button>
+            <Button type="submit" loading={loading} className="w-full">Create account</Button>
           </form>
-          <p className="mt-6 text-center text-sm text-stone-500">
+          <p className="mt-6 text-center text-sm text-muted">
             Already have an account? <Link to="/sign-in" className={linkClass}>Sign in</Link>
           </p>
         </>
@@ -168,7 +165,7 @@ export function ForgotPasswordPage() {
       ) : (
         <form onSubmit={submit} className="space-y-4">
           <Input label="Email" name="email" type="email" autoComplete="email" required />
-          <Button type="submit" loading={loading} size="lg" className="w-full">Send reset link</Button>
+          <Button type="submit" loading={loading} className="w-full">Send reset link</Button>
           <p className="text-center text-sm"><Link to="/sign-in" className={linkClass}>Back to sign in</Link></p>
         </form>
       )}
@@ -198,7 +195,7 @@ export function ResetPasswordPage() {
       <form onSubmit={submit} className="space-y-4">
         <Input label="New password" name="password" type="password" autoComplete="new-password" required minLength={8} />
         <ErrorText>{error}</ErrorText>
-        <Button type="submit" loading={loading} disabled={!token} size="lg" className="w-full">Save new password</Button>
+        <Button type="submit" loading={loading} disabled={!token} className="w-full">Save new password</Button>
       </form>
     </AuthLayout>
   );

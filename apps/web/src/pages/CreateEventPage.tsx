@@ -5,28 +5,24 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowRight, QrCode, ScanFace, ShieldCheck, X } from 'lucide-react';
+import { ArrowRight, ShieldCheck, X } from 'lucide-react';
 import { PhotoDropzone } from '../components/PhotoDropzone';
 import { UploadProgressCard } from '../components/UploadProgressCard';
-import { Alert, Button, Card, ErrorText, Input, PageHeader, Toggle } from '../components/ui';
+import { Alert, Button, ErrorText, Input, PageHeader, Toggle } from '../components/ui';
 import { send } from '../lib/api';
 import { mergeFiles, uploadEventPhotos, type UploadProgress } from '../lib/upload';
 import { useConfig } from '../lib/use-config';
 
-/** Numbered heading for each part of the form. */
-function Section({ step, title, description, aside, children }: { step: number; title: string; description: string; aside?: ReactNode; children: ReactNode }) {
+/** A titled part of the form, separated by a hairline. */
+function Section({ title, aside, children }: { title: string; aside?: ReactNode; children: ReactNode }) {
   return (
-    <Card>
-      <div className="mb-6 flex items-start gap-4">
-        <span className="font-display text-5xl leading-none text-stone-300">{String(step).padStart(2, '0')}</span>
-        <div className="min-w-0 flex-1 pt-1">
-          <h2 className="font-display text-3xl leading-tight text-ink">{title}</h2>
-          <p className="mt-1 text-sm text-stone-500">{description}</p>
-        </div>
+    <section className="border-t border-line pt-6">
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <h2 className="font-semibold text-ink">{title}</h2>
         {aside}
       </div>
       {children}
-    </Card>
+    </section>
   );
 }
 
@@ -74,80 +70,81 @@ export function CreateEventPage() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="max-w-2xl">
       <PageHeader
-        back={{ to: '/dashboard', label: 'All events' }}
+        back={{ to: '/dashboard', label: 'Events' }}
+        icon="➕"
         title="New event"
-        description="Name it, choose the privacy level and add your photos. We'll handle the rest."
+        description="Name it, choose the privacy level and add your photos."
       />
 
-      <form onSubmit={submit} className="grid animate-enter items-start gap-6 [animation-delay:60ms] lg:grid-cols-[1fr_300px]">
-        <div className="space-y-6">
-          <Section step={1} title="Event details" description="Guests see the name when they scan the QR code.">
-            <div className="space-y-5">
-              <Input label="Event name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Maya & Aarav's Wedding" required minLength={2} maxLength={120} disabled={busy} />
-              <Toggle
-                checked={livenessRequired}
-                onChange={setLivenessRequired}
-                disabled={busy}
-                icon={<ShieldCheck className="size-4" />}
-                title="Require a live face check before guests see their photos"
-                description="Recommended for private events. Before a gallery opens, the guest looks into their camera and turns their head. Our AI confirms it's a real person and the same face as the selfie — so a forwarded gallery link is useless to anyone else."
-              />
-            </div>
-          </Section>
-
-          <Section
-            step={2}
-            title="Photos"
-            description="You can also add photos later from the event page."
-            aside={files.length > 0 && <span className="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-semibold text-stone-700 tabular-nums">{files.length.toLocaleString()} selected</span>}
-          >
-            <div className="space-y-4">
-              {config && !config.uploads && (
-                <Alert tone="warning">Photo uploads aren't configured yet (Cloudinary keys missing in .env). You can still create the event.</Alert>
-              )}
-              <PhotoDropzone onFiles={addFiles} disabled={busy || config?.uploads === false} />
-              {notice && <Alert tone="warning">{notice}</Alert>}
-              {files.length > 0 && (
-                <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
-                  {previews.map((url, index) => (
-                    <div key={url} className="group relative aspect-square animate-scale-in overflow-hidden rounded-lg bg-stone-100 ring-1 ring-stone-900/6">
-                      <img src={url} alt="" className="size-full object-cover" />
-                      {!busy && (
-                        <button type="button" onClick={() => setFiles((f) => f.filter((_, i) => i !== index))} className="absolute top-1 right-1 rounded-full bg-black/60 p-0.5 text-white opacity-0 transition group-hover:opacity-100 focus-visible:opacity-100" aria-label="Remove photo">
-                          <X className="size-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  {files.length > previews.length && (
-                    <div className="grid aspect-square place-items-center rounded-lg bg-stone-100 text-sm font-semibold text-stone-600">+{(files.length - previews.length).toLocaleString()}</div>
-                  )}
-                </div>
-              )}
-              {progress && <UploadProgressCard progress={progress} />}
-            </div>
-          </Section>
-        </div>
-
-        {/* Summary + submit. Sticks to the top on large screens. */}
-        <Card className="space-y-5 lg:sticky lg:top-24">
-          <div>
-            <h2 className="font-display text-2xl leading-tight text-ink">What happens next</h2>
-            <ul className="mt-4 space-y-3 text-sm text-stone-600">
-              <li className="flex gap-3"><ScanFace className="mt-0.5 size-4 shrink-0 text-brand-600" />We find every face in your photos, in the background.</li>
-              <li className="flex gap-3"><QrCode className="mt-0.5 size-4 shrink-0 text-brand-600" />You get a QR code and link to share with guests.</li>
-              <li className="flex gap-3"><ShieldCheck className="mt-0.5 size-4 shrink-0 text-brand-600" />Guests get only the photos they appear in.</li>
-            </ul>
+      <form onSubmit={submit} className="animate-enter space-y-8">
+        <Section title="Details">
+          <div className="space-y-4">
+            <Input
+              label="Event name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Maya & Aarav's Wedding"
+              required
+              minLength={2}
+              maxLength={120}
+              disabled={busy}
+              hint="Guests see this name when they scan the QR code."
+            />
+            <Toggle
+              checked={livenessRequired}
+              onChange={setLivenessRequired}
+              disabled={busy}
+              icon={<ShieldCheck />}
+              title="Require a live face check"
+              description="Recommended for private events. Before a gallery opens, the guest turns their head in front of the camera — so a forwarded gallery link is useless to anyone else."
+            />
           </div>
+        </Section>
+
+        <Section title="Photos" aside={files.length > 0 && <span className="text-sm text-muted tabular-nums">{files.length.toLocaleString()} selected</span>}>
+          <div className="space-y-3">
+            {config && !config.uploads && (
+              <Alert tone="warning">Photo uploads aren't configured yet (Cloudinary keys missing in .env). You can still create the event.</Alert>
+            )}
+            <PhotoDropzone onFiles={addFiles} disabled={busy || config?.uploads === false} />
+            {notice && <Alert tone="warning">{notice}</Alert>}
+            {files.length > 0 && (
+              <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-6">
+                {previews.map((url, index) => (
+                  <div key={url} className="group relative aspect-square overflow-hidden rounded-md bg-paper">
+                    <img src={url} alt="" className="size-full object-cover" />
+                    {!busy && (
+                      <button type="button" onClick={() => setFiles((f) => f.filter((_, i) => i !== index))} className="absolute top-1 right-1 rounded-full bg-black/60 p-0.5 text-white opacity-0 transition group-hover:opacity-100 focus-visible:opacity-100" aria-label="Remove photo">
+                        <X className="size-3.5" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {files.length > previews.length && (
+                  <div className="grid aspect-square place-items-center rounded-md bg-paper text-sm font-medium text-muted">+{(files.length - previews.length).toLocaleString()}</div>
+                )}
+              </div>
+            )}
+            {progress && <UploadProgressCard progress={progress} />}
+            <p className="text-xs text-muted">You can also add photos later from the event page.</p>
+          </div>
+        </Section>
+
+        <section className="space-y-4 border-t border-line pt-6">
+          <Alert icon="✨" title="What happens next">
+            We find every face in your photos in the background, then give you a QR code to share. Guests get only the photos they appear in.
+          </Alert>
           <ErrorText>{error}</ErrorText>
-          <Button type="submit" size="lg" loading={busy} className="w-full">
-            {busy ? (progress ? 'Uploading…' : 'Creating…') : files.length ? `Create & upload ${files.length.toLocaleString()} photos` : 'Create event'}
-            {!busy && <ArrowRight className="size-4" />}
-          </Button>
-          {busy && <p className="text-center text-xs text-stone-500">Keep this tab open until the upload finishes.</p>}
-        </Card>
+          <div className="flex items-center gap-3">
+            <Button type="submit" size="lg" loading={busy}>
+              {busy ? (progress ? 'Uploading…' : 'Creating…') : files.length ? `Create & upload ${files.length.toLocaleString()} photos` : 'Create event'}
+              {!busy && <ArrowRight className="size-4" />}
+            </Button>
+            {busy && <p className="text-xs text-muted">Keep this tab open until the upload finishes.</p>}
+          </div>
+        </section>
       </form>
     </div>
   );

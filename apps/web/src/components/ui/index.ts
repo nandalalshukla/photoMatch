@@ -5,13 +5,12 @@
  *
  *   Button.tsx    Button, ButtonLink, buttonClass
  *   Form.tsx      Input, Toggle
- *   Card.tsx      Card, CardHeader, StatCard, Badge
- *   Feedback.tsx  Alert, ErrorText, Spinner, Skeleton, EmptyState, ProgressBar
+ *   Card.tsx      Card, CardHeader, StatCard, Badge (pastel tags)
+ *   Feedback.tsx  Alert (callout), ErrorText, Spinner, Skeleton, EmptyState, ProgressBar
  *   Overlay.tsx   Modal, Lightbox, Menu, MenuLink, MenuButton
- *   Page.tsx      PageHeader, Avatar
- *   Motion.tsx    Reveal, useInView, useScrollProgress
+ *   Page.tsx      PageHeader, Properties, Avatar
  *
- * Colors, type, shadows and animations are design tokens in src/index.css.
+ * Colors, shadows and animations are design tokens in src/index.css.
  */
 export * from './Button';
 export * from './Form';
@@ -19,4 +18,3 @@ export * from './Card';
 export * from './Feedback';
 export * from './Overlay';
 export * from './Page';
-export * from './Motion';
