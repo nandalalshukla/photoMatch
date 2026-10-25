@@ -16,6 +16,7 @@ import { eventsRouter } from './modules/events/events.routes.js';
 import { galleriesRouter } from './modules/galleries/galleries.routes.js';
 import { webhooksRouter } from './modules/bots/webhooks.routes.js';
 import { adminRouter } from './modules/admin/admin.routes.js';
+import { contributeRouter } from './modules/events/contribute.routes.js';
 
 export const app = express();
 
@@ -62,6 +63,7 @@ app.use('/api/events', eventsRouter);
 app.use('/api/galleries', galleriesRouter);
 app.use('/api/webhooks', webhooksRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/contribute', contributeRouter);
 
 // Unknown API route → JSON 404 (instead of the web app's HTML).
 app.use('/api', (_req, res) => {

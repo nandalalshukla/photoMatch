@@ -11,6 +11,9 @@
  * photos don't slow it down. Because duplicates are skipped by content, you can
  * re-add a whole folder after an interrupted upload and only the missing photos
  * are sent.
+ *
+ * Organizers upload through /api/events/:id/…; contributors with the event's
+ * upload link use the same steps through /api/contribute/:token/….
  */
 import { api, send } from './api';
 
@@ -62,12 +65,18 @@ async function fingerprint(file: File): Promise<string | undefined> {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
+/**
+ * Where photos go: the API path prefix, plus extra fields sent along when the
+ * photos are registered (contributors send their name).
+ */
+type UploadTarget = { basePath: string; extra?: Record<string, unknown> };
+
 /** Ask the API which of these fingerprints the event already has (in chunks). */
-async function existingHashes(eventId: string, hashes: string[]) {
+async function existingHashes(target: UploadTarget, hashes: string[]) {
   const existing = new Set<string>();
   for (let i = 0; i < hashes.length; i += CHECK_CHUNK) {
     const chunk = hashes.slice(i, i + CHECK_CHUNK);
-    const result = await send<{ existing: string[] }>('POST', `/events/${eventId}/photos/check`, { hashes: chunk });
+    const result = await send<{ existing: string[] }>('POST', `${target.basePath}/photos/check`, { hashes: chunk });
     result.existing.forEach((hash) => existing.add(hash));
   }
   return existing;
@@ -87,11 +96,15 @@ async function uploadOne(file: File, signature: Signature): Promise<Omit<Uploade
   return { publicId: body.public_id, url: body.secure_url, width: body.width, height: body.height };
 }
 
-export async function uploadEventPhotos(
-  eventId: string,
-  files: File[],
-  onProgress: (progress: UploadProgress) => void,
-) {
+/** An organizer (or co-organizer) adds photos to their event. */
+export const uploadEventPhotos = (eventId: string, files: File[], onProgress: (progress: UploadProgress) => void) =>
+  uploadPhotos({ basePath: `/events/${eventId}` }, files, onProgress);
+
+/** Someone with the event's upload link adds photos; they wait for the organizer's approval. */
+export const uploadContributedPhotos = (token: string, name: string, files: File[], onProgress: (progress: UploadProgress) => void) =>
+  uploadPhotos({ basePath: `/contribute/${token}`, extra: { name } }, files, onProgress);
+
+async function uploadPhotos(target: UploadTarget, files: File[], onProgress: (progress: UploadProgress) => void) {
   const progress: UploadProgress = { phase: 'checking', checked: 0, done: 0, failed: 0, duplicates: 0, total: files.length };
   const report = () => onProgress({ ...progress });
   report();
@@ -103,7 +116,7 @@ export async function uploadEventPhotos(
     progress.checked++;
     if (progress.checked % 10 === 0) report();
   }
-  const alreadyInEvent = await existingHashes(eventId, hashed.flatMap((h) => (h.hash ? [h.hash] : [])));
+  const alreadyInEvent = await existingHashes(target, hashed.flatMap((h) => (h.hash ? [h.hash] : [])));
   const seen = new Set<string>();
   const queue = hashed.filter(({ hash }) => {
     if (!hash) return true; // couldn't fingerprint → upload anyway
@@ -117,15 +130,15 @@ export async function uploadEventPhotos(
   if (queue.length === 0) return progress;
 
   // --- Steps 2–4: upload what's left ---
-  const signature = await send<Signature>('POST', `/events/${eventId}/upload-signature`);
+  const signature = await send<Signature>('POST', `${target.basePath}/upload-signature`);
   const uploaded: Uploaded[] = [];
 
   /** Save a chunk of uploaded photos in our database. */
   const register = async (photos: Uploaded[]) => {
     if (!photos.length) return;
-    const result = await api<{ added: number; duplicates: number }>(`/events/${eventId}/photos`, {
+    const result = await api<{ added: number; duplicates: number }>(`${target.basePath}/photos`, {
       method: 'POST',
-      body: JSON.stringify({ photos }),
+      body: JSON.stringify({ ...target.extra, photos }),
     });
     // The database may still reject a duplicate (e.g. another tab uploaded the same photo meanwhile).
     progress.duplicates += result.duplicates;

@@ -30,6 +30,8 @@ function EventCard({ event }: { event: EventSummary }) {
         <h2 className="truncate font-semibold text-ink">{event.name}</h2>
         <div className="flex flex-wrap items-center gap-1.5">
           <EventStateBadge state={progress.state} />
+          {event.pendingCount > 0 && <Badge color="orange">{event.pendingCount.toLocaleString()} to review</Badge>}
+          {event.role === 'coorganizer' && <Badge color="blue">Shared with you</Badge>}
           {event.livenessRequired && <Badge color="violet"><ShieldCheck className="size-3" />Liveness</Badge>}
         </div>
         {progress.state === 'PROCESSING' && <ProgressBar value={percent} active />}
