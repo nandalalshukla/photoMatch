@@ -21,20 +21,20 @@ const downloadUrl = (url: string) => url.replace('/image/upload/', '/image/uploa
 
 /** White card used for every non-gallery state (errors, searching). */
 function StateCard({ children }: { children: ReactNode }) {
-  return <div className="mx-auto max-w-md overflow-hidden rounded-3xl bg-white ring-1 ring-stone-900/7">{children}</div>;
+  return <div className="mx-auto max-w-md rounded-lg border border-line">{children}</div>;
 }
 
 function Searching() {
   return (
     <StateCard>
       <div className="flex animate-enter flex-col items-center px-6 py-14 text-center">
-        {/* The darkroom: a safelight scans while the photos "develop". */}
-        <div className="relative grid size-24 place-items-center overflow-hidden rounded-3xl bg-ink text-paper">
-          <ScanFace className="size-10" />
-          <span className="absolute inset-x-3 h-0.5 animate-scan rounded-full bg-brand-500 shadow-[0_0_14px_3px_rgb(223_86_54/0.7)]" />
+        {/* A scan line moves over a face while the search runs. */}
+        <div className="relative grid size-16 place-items-center overflow-hidden rounded-lg bg-paper text-muted">
+          <ScanFace className="size-8" />
+          <span className="absolute inset-x-2 h-0.5 animate-scan rounded-full bg-brand-500" />
         </div>
-        <h1 className="mt-7 font-display text-4xl text-ink">Developing your photos…</h1>
-        <p className="mt-2 text-sm text-stone-500">We're comparing your selfie with every photo from the event. This takes a few seconds.</p>
+        <h1 className="mt-5 text-lg font-semibold text-ink">Finding your photos…</h1>
+        <p className="mt-1 text-sm text-muted">We're comparing your selfie with every photo from the event. This takes a few seconds.</p>
       </div>
     </StateCard>
   );
@@ -101,7 +101,7 @@ export function GalleryPage() {
       return (
         <>
           <div className="mb-8 space-y-3"><Skeleton className="h-4 w-40" /><Skeleton className="h-9 w-80 max-w-full" /></div>
-          <div className="columns-2 gap-3 sm:columns-3 lg:columns-4">
+          <div className="columns-2 gap-2 sm:columns-3 lg:columns-4">
             {['h-64', 'h-44', 'h-56', 'h-72', 'h-48', 'h-60', 'h-44', 'h-64'].map((height, i) => <Skeleton key={i} className={`mb-3 w-full rounded-xl ${height}`} />)}
           </div>
         </>
@@ -126,23 +126,24 @@ export function GalleryPage() {
 
     return (
       <>
-        <div className="mb-10 flex animate-enter flex-wrap items-end justify-between gap-6">
+        <div className="mb-8 flex animate-enter flex-wrap items-end justify-between gap-6">
           <div>
-            <p className="eyebrow flex items-center gap-2 text-stone-500"><span className="size-2 rounded-full bg-brand-500" />{gallery.eventName}</p>
-            <h1 className="mt-4 font-display text-5xl leading-none tracking-tight text-ink sm:text-7xl">
-              We found <em>{count}</em> photo{count === 1 ? '' : 's'}<br className="hidden sm:block" /> of you.
+            <p className="text-5xl" aria-hidden>🎉</p>
+            <p className="mt-4 text-sm text-muted">{gallery.eventName}</p>
+            <h1 className="mt-1 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+              We found {count} photo{count === 1 ? '' : 's'} of you
             </h1>
-            <p className="mt-4 text-[15px] text-stone-500">Play them as a slideshow, open any photo, or select several to download at once.</p>
+            <p className="mt-2 text-[15px] text-muted">Play them as a slideshow, open any photo, or select several to download at once.</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {!selecting && <Button size="lg" onClick={() => setPlaying(true)}><Play className="size-4 fill-current" />Play memories</Button>}
-            <Button size="lg" variant="secondary" onClick={() => { setSelecting(!selecting); setSelected(new Set()); setDownloadError(''); }}>
+            {!selecting && <Button onClick={() => setPlaying(true)}><Play className="size-4 fill-current" />Play memories</Button>}
+            <Button variant="secondary" onClick={() => { setSelecting(!selecting); setSelected(new Set()); setDownloadError(''); }}>
               {selecting ? <><X className="size-4" />Cancel</> : <><CheckSquare className="size-4" />Select</>}
             </Button>
           </div>
         </div>
 
-        <div className="columns-2 gap-3 sm:columns-3 lg:columns-4">
+        <div className="columns-2 gap-2 sm:columns-3 lg:columns-4">
           {gallery.photos.map((photo, index) => {
             const isSelected = selected.has(photo.id);
             return (
@@ -152,17 +153,15 @@ export function GalleryPage() {
                 aria-pressed={selecting ? isSelected : undefined}
                 aria-label={selecting ? `Select photo ${index + 1}` : `View photo ${index + 1}`}
                 className={cn(
-                  'group relative mb-3 block w-full overflow-hidden rounded-2xl bg-paper-deep transition duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink',
-                  isSelected && 'ring-[3px] ring-ink ring-offset-2 ring-offset-paper',
+                  'group relative mb-2 block w-full overflow-hidden rounded-md bg-paper focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500',
+                  isSelected && 'ring-[3px] ring-brand-500',
                 )}
               >
-                {/* Each photo develops like a print as the gallery opens. */}
                 <img
                   src={thumbnail(photo.url, 600, 'limit')}
                   alt=""
                   loading="lazy"
-                  className={cn('w-full animate-develop transition-transform duration-700 ease-editorial', isSelected ? 'scale-[0.96]' : 'group-hover:scale-[1.04]')}
-                  style={{ animationDelay: `${Math.min(index, 12) * 90}ms` }}
+                  className={cn('w-full transition-opacity', isSelected ? 'opacity-80' : 'group-hover:opacity-90')}
                 />
                 {!selecting && (
                   <span className="absolute inset-0 flex items-end justify-end bg-linear-to-t from-black/35 via-transparent to-transparent p-3 opacity-0 transition duration-300 group-hover:opacity-100">
@@ -170,7 +169,7 @@ export function GalleryPage() {
                   </span>
                 )}
                 {selecting && (
-                  <span className={cn('absolute top-2.5 right-2.5 grid size-7 place-items-center rounded-full border-2 border-white shadow-sm transition', isSelected ? 'scale-110 bg-ink' : 'bg-black/25 backdrop-blur')}>
+                  <span className={cn('absolute top-2.5 right-2.5 grid size-7 place-items-center rounded-full border-2 border-white shadow-sm transition', isSelected ? 'bg-brand-500' : 'bg-black/25')}>
                     {isSelected && <Check className="size-4 text-white" strokeWidth={3} />}
                   </span>
                 )}
@@ -180,11 +179,11 @@ export function GalleryPage() {
         </div>
 
         {selecting && (
-          <div className="fixed inset-x-0 bottom-4 z-40 mx-auto flex w-[calc(100%-2rem)] max-w-md animate-slide-up items-center gap-3 rounded-full bg-ink/95 p-2 pl-5 text-white shadow-elevated ring-1 ring-white/10 backdrop-blur">
+          <div className="fixed inset-x-0 bottom-4 z-40 mx-auto flex w-[calc(100%-2rem)] max-w-md animate-slide-up items-center gap-3 rounded-lg bg-[#191919] p-2 pl-4 text-white shadow-pop">
             <button className="text-sm font-medium text-white/75 transition hover:text-white" onClick={() => setSelected(allSelected ? new Set() : new Set(gallery.photos.map((p) => p.id)))}>
               {allSelected ? 'Clear' : 'Select all'}
             </button>
-            <span className="flex-1 text-center text-sm">{downloadError ? <span className="text-red-300">{downloadError}</span> : <><b className="font-semibold tabular-nums">{selected.size}</b> selected</>}</span>
+            <span className="flex-1 text-center text-sm">{downloadError ? <span className="text-[#ff9b9b]">{downloadError}</span> : <><b className="font-semibold tabular-nums">{selected.size}</b> selected</>}</span>
             <Button variant="white" size="sm" disabled={!selected.size || zipping !== null} onClick={downloadZip}>
               {zipping !== null ? <><LoaderCircle className="size-4 animate-spin" />{zipping}%</> : <><Download className="size-4" />Download</>}
             </Button>
@@ -195,14 +194,14 @@ export function GalleryPage() {
   };
 
   return (
-    <div className="min-h-dvh bg-paper">
-      <header className="sticky top-0 z-30 border-b border-stone-300/60 bg-paper/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+    <div className="min-h-dvh bg-white">
+      <header className="sticky top-0 z-30 border-b border-line bg-white/95 backdrop-blur">
+        <div className="mx-auto flex h-12 max-w-6xl items-center justify-between px-4 sm:px-6">
           <Logo />
-          <span className="eyebrow hidden items-center gap-1.5 text-stone-500 sm:flex"><Lock className="size-3" />Private gallery</span>
+          <span className="flex items-center gap-1.5 text-xs text-muted"><Lock className="size-3" />Private gallery</span>
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-4 py-12 pb-28 sm:px-6 sm:py-16">{content()}</main>
+      <main className="mx-auto max-w-6xl px-4 py-10 pb-28 sm:px-6 sm:py-14">{content()}</main>
 
       {playing && gallery && (
         <StoryMode photos={gallery.photos} title={gallery.eventName} downloadUrl={downloadUrl} onClose={() => setPlaying(false)} />

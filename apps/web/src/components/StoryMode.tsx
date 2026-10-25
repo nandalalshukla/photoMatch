@@ -79,7 +79,7 @@ export function StoryMode({ photos, title, downloadUrl, onClose }: Props) {
 
         <div className="flex items-center justify-between gap-3 px-4 pt-3">
           <div className="min-w-0">
-            <p className="truncate font-display text-xl leading-tight">{title}</p>
+            <p className="truncate font-semibold text-xl leading-tight">{title}</p>
             <p className="text-xs text-white/60 tabular-nums">{index + 1} of {photos.length}</p>
           </div>
           <div className="flex shrink-0 gap-1">
@@ -116,11 +116,10 @@ export function StoryMode({ photos, title, downloadUrl, onClose }: Props) {
             className={cn('absolute inset-0 size-full animate-ken-burns object-cover', paused && '[animation-play-state:paused]')}
             style={{ animationDuration: `${SECONDS_PER_PHOTO + 1}s` }}
           />
-          <div className="grain absolute inset-0 opacity-25" />
           {finished && (
             <div className="absolute inset-0 grid animate-fade-in place-items-center bg-black/55 p-6 text-center backdrop-blur-sm">
               <div>
-                <p className="font-display text-5xl leading-tight">That's your night.</p>
+                <p className="font-semibold text-5xl leading-tight">That's your night.</p>
                 <p className="mt-2 text-white/70">{photos.length} photos of you, all in one place.</p>
                 <button
                   onClick={(e) => { e.stopPropagation(); setFinished(false); setIndex(0); }}

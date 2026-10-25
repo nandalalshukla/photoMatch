@@ -1,121 +1,95 @@
 /*
- * Global styles and design tokens — the "darkroom" editorial identity.
+ * Global styles and design tokens — a calm, Notion-like look:
+ * white pages, warm near-black text, hairline borders, soft gray surfaces,
+ * one blue for actions and pastel tags for status. One font (Inter).
  *
- *   paper   warm off-white canvas, like photo paper
- *   ink     near-black for text and primary actions
- *   brand   "safelight" red — the darkroom lamp. Use sparingly: dots, small highlights.
- *   font-display  Instrument Serif for headlines; Inter (font-sans) for everything else.
- *
- * Every token in @theme becomes a Tailwind class (bg-paper, text-ink,
- * font-display, shadow-card, animate-develop, …). Neutrals use Tailwind's warm
- * `stone` palette.
+ * Every token in @theme becomes a Tailwind class (text-ink, bg-paper,
+ * border-line, bg-brand-500, …).
  */
 @import '@fontsource-variable/inter';
-@import '@fontsource/instrument-serif/400.css';
-@import '@fontsource/instrument-serif/400-italic.css';
 @import 'tailwindcss';
 
 @theme {
-  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Instrument Serif', ui-serif, Georgia, serif;
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 
-  --color-paper: #f5f3ee;
-  --color-paper-deep: #ebe7df;
-  --color-ink: #141312;
-  --color-ink-soft: #2a2826;
+  --color-ink: #37352f; /* body text and headings */
+  --color-muted: #787774; /* secondary text */
+  --color-faint: #a5a29c; /* placeholders, hints */
+  --color-line: #e9e9e7; /* borders and dividers */
+  --color-paper: #f7f6f3; /* soft gray surfaces (sidebar, callouts) */
+  --color-hover: rgb(55 53 47 / 0.06); /* hover background on rows and ghost buttons */
 
-  /* Safelight red. */
-  --color-brand-50: #fdf4f1;
-  --color-brand-100: #fbe4dd;
-  --color-brand-200: #f6c4b5;
-  --color-brand-300: #f09d85;
-  --color-brand-400: #e87757;
-  --color-brand-500: #df5636;
-  --color-brand-600: #c9432a;
-  --color-brand-700: #a73521;
-  --color-brand-800: #852c1e;
-  --color-brand-900: #5e2116;
-  --color-brand-950: #3a1009;
+  /* Blue, for primary actions and links. */
+  --color-brand-50: #eef6fd;
+  --color-brand-100: #d3e5ef;
+  --color-brand-500: #2383e2;
+  --color-brand-600: #0b6bcb;
+  --color-brand-700: #0a5aa8;
 
-  --shadow-xs: 0 1px 2px 0 rgb(20 19 18 / 0.05);
-  --shadow-card: 0 1px 2px 0 rgb(20 19 18 / 0.04);
-  --shadow-elevated: 0 24px 48px -16px rgb(20 19 18 / 0.28), 0 2px 6px 0 rgb(20 19 18 / 0.06);
-  --shadow-print: 0 1px 1px rgb(20 19 18 / 0.08), 0 12px 24px -12px rgb(20 19 18 / 0.35);
+  /* Pastel tag colors (background / text), as in Notion's select tags. */
+  --color-tag-gray: #e3e2e0;
+  --color-tag-gray-text: #32302c;
+  --color-tag-green: #dbeddb;
+  --color-tag-green-text: #1c3829;
+  --color-tag-yellow: #fdecc8;
+  --color-tag-yellow-text: #402c1b;
+  --color-tag-red: #ffe2dd;
+  --color-tag-red-text: #5d1715;
+  --color-tag-blue: #d3e5ef;
+  --color-tag-blue-text: #183347;
+  --color-tag-purple: #e8deee;
+  --color-tag-purple-text: #412454;
+  --color-tag-orange: #fadec9;
+  --color-tag-orange-text: #49290e;
+  --color-tag-pink: #f5e0e9;
+  --color-tag-pink-text: #4c2337;
 
-  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-editorial: cubic-bezier(0.22, 1, 0.36, 1);
+  --shadow-xs: 0 1px 2px rgb(15 15 15 / 0.06);
+  --shadow-pop: 0 0 0 1px rgb(15 15 15 / 0.05), 0 3px 6px rgb(15 15 15 / 0.1), 0 9px 24px rgb(15 15 15 / 0.2);
 
-  --animate-enter: enter 0.9s var(--ease-editorial) both;
-  --animate-develop: develop 1.6s var(--ease-editorial) both;
-  --animate-fade-in: fade-in 0.25s ease-out both;
-  --animate-scale-in: scale-in 0.3s var(--ease-out-expo) both;
-  --animate-slide-up: slide-up 0.45s var(--ease-out-expo) both;
+  --animate-enter: enter 0.35s ease-out both;
+  --animate-fade-in: fade-in 0.2s ease-out both;
+  --animate-scale-in: scale-in 0.18s ease-out both;
+  --animate-slide-up: slide-up 0.25s ease-out both;
   --animate-shimmer: shimmer 1.8s linear infinite;
-  --animate-marquee: marquee 45s linear infinite;
-  --animate-float: float 7s ease-in-out infinite;
   --animate-scan: scan 2.2s ease-in-out infinite;
   --animate-ken-burns: ken-burns 6s ease-out both;
   --animate-story-progress: story-progress var(--story-duration, 5s) linear both;
-  --animate-hint: hint 2.4s var(--ease-editorial) 0.6s both;
-  --animate-progress-stripes: progress-stripes 1s linear infinite;
   /* Liveness check: a face turning to its left, and an arrow nudging left. */
   --animate-head-turn: head-turn 2.4s ease-in-out infinite;
   --animate-nudge-left: nudge-left 1s ease-in-out infinite;
 
   @keyframes enter {
-    from { opacity: 0; transform: translateY(14px); filter: blur(4px); }
-    to { opacity: 1; transform: none; filter: none; }
-  }
-  /* A print developing in the tray: grey and soft → sharp and in color. */
-  @keyframes develop {
-    from { filter: grayscale(1) blur(10px) brightness(0.7); opacity: 0.4; transform: scale(1.03); }
-    to { filter: none; opacity: 1; transform: none; }
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
   }
   @keyframes fade-in {
     from { opacity: 0; }
     to { opacity: 1; }
   }
   @keyframes scale-in {
-    from { opacity: 0; transform: scale(0.97) translateY(6px); }
+    from { opacity: 0; transform: scale(0.98); }
     to { opacity: 1; transform: none; }
   }
   @keyframes slide-up {
-    from { opacity: 0; transform: translateY(18px); }
+    from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: none; }
   }
   @keyframes shimmer {
     from { background-position: 200% 0; }
     to { background-position: -200% 0; }
   }
-  @keyframes marquee {
-    from { transform: translateX(0); }
-    to { transform: translateX(-50%); }
-  }
-  @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
-  }
   @keyframes scan {
-    0%, 100% { top: 8%; }
-    50% { top: 88%; }
+    0%, 100% { top: 10%; }
+    50% { top: 86%; }
   }
   @keyframes ken-burns {
-    from { transform: scale(1.12) translate(1.5%, 1%); }
-    to { transform: scale(1) translate(0, 0); }
+    from { transform: scale(1.06); }
+    to { transform: scale(1); }
   }
   @keyframes story-progress {
     from { transform: scaleX(0); }
     to { transform: scaleX(1); }
-  }
-  /* Nudges the compare slider so people see it can be dragged. */
-  @keyframes hint {
-    0%, 100% { left: 50%; }
-    30% { left: 38%; }
-    65% { left: 60%; }
-  }
-  @keyframes progress-stripes {
-    from { background-position: 1rem 0; }
-    to { background-position: 0 0; }
   }
   @keyframes head-turn {
     0%, 15% { transform: translateX(0); }
@@ -128,17 +102,12 @@
   }
 }
 
-html {
-  scroll-behavior: smooth;
-}
-
 body {
-  @apply bg-paper text-ink antialiased;
-  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  @apply bg-white text-ink antialiased;
 }
 
 ::selection {
-  @apply bg-ink text-paper;
+  background: rgb(35 131 226 / 0.25);
 }
 
 /* Respect "reduce motion": keep the UI, drop the movement. */
@@ -147,33 +116,12 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
   }
-}
-
-/* Small uppercase label above headlines — the magazine "kicker". */
-@utility eyebrow {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
-
-/* The safelight bar used by progress indicators. */
-@utility brand-gradient {
-  background-image: linear-gradient(90deg, var(--color-brand-700) 0%, var(--color-brand-500) 100%);
-}
-
-/* Fine film grain over dark photos and sections. */
-@utility grain {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
-  mix-blend-mode: overlay;
-  pointer-events: none;
 }
 
 /* Loading placeholder with a moving sheen (see <Skeleton />). */
 @utility skeleton {
-  background-image: linear-gradient(90deg, var(--color-paper-deep) 0%, var(--color-stone-200) 50%, var(--color-paper-deep) 100%);
+  background-image: linear-gradient(90deg, #f1f1ef 0%, #e9e9e7 50%, #f1f1ef 100%);
   background-size: 200% 100%;
   animation: var(--animate-shimmer);
 }
@@ -185,34 +133,5 @@ body {
 @media print {
   body:has(> .print-root) > :not(.print-root) {
     display: none !important;
-  }
-}
-
-/*
- * Scroll reveal (see <Reveal />): content fades up and sharpens when it scrolls
- * into view; images inside `.reveal-develop` develop like a print.
- */
-@layer components {
-  .reveal {
-    opacity: 0;
-    transform: translateY(28px);
-    filter: blur(6px);
-    transition: opacity 1s var(--ease-editorial), transform 1s var(--ease-editorial), filter 1s var(--ease-editorial);
-    transition-delay: var(--reveal-delay, 0ms);
-  }
-  .reveal[data-visible] {
-    opacity: 1;
-    transform: none;
-    filter: none;
-  }
-  .reveal-develop img {
-    filter: grayscale(1) blur(8px) brightness(0.75);
-    transform: scale(1.04);
-    transition: filter 1.8s var(--ease-editorial), transform 1.8s var(--ease-editorial);
-    transition-delay: var(--reveal-delay, 0ms);
-  }
-  .reveal-develop[data-visible] img {
-    filter: none;
-    transform: none;
   }
 }

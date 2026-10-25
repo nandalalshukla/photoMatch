@@ -13,15 +13,15 @@ export function UploadProgressCard({ progress }: { progress: UploadProgress }) {
       : Math.round(((progress.done + progress.failed) / toUpload) * 100);
 
   return (
-    <div className="animate-enter space-y-3 rounded-2xl bg-paper p-4 ring-1 ring-stone-900/10 ring-inset">
+    <div className="animate-enter space-y-3 rounded-md bg-paper p-3.5">
       <div className="flex items-center justify-between gap-3 text-sm">
-        <span className="flex items-center gap-2 font-medium text-stone-700">
-          <LoaderCircle className="size-4 animate-spin text-brand-600" />
+        <span className="flex items-center gap-2 font-medium text-ink">
+          <LoaderCircle className="size-4 animate-spin text-muted" />
           {checking
             ? `Checking for duplicates… ${progress.checked.toLocaleString()} of ${progress.total.toLocaleString()}`
             : `Uploading ${progress.done.toLocaleString()} of ${toUpload.toLocaleString()} photos`}
         </span>
-        <span className="font-display text-2xl leading-none text-ink tabular-nums">{percent}%</span>
+        <span className="text-sm font-medium text-ink tabular-nums">{percent}%</span>
       </div>
       <ProgressBar value={percent} active />
       <UploadSummaryText progress={progress} />
@@ -34,12 +34,12 @@ export function UploadSummaryText({ progress }: { progress: Pick<UploadProgress,
   return (
     <>
       {progress.duplicates > 0 && (
-        <p className="text-xs text-stone-600">
+        <p className="text-xs text-muted">
           {progress.duplicates} duplicate photo{progress.duplicates === 1 ? '' : 's'} skipped — already in this event or chosen twice.
         </p>
       )}
       {progress.failed > 0 && (
-        <p className="text-xs text-red-600">{progress.failed} photo(s) failed to upload — add them again and only the missing ones will be sent.</p>
+        <p className="text-xs text-[#eb5757]">{progress.failed} photo(s) failed to upload — add them again and only the missing ones will be sent.</p>
       )}
     </>
   );

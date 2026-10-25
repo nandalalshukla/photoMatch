@@ -1,55 +1,53 @@
 import type { ComponentType, ReactNode } from 'react';
 import { cn } from '../../lib/cn';
 
-/** A white surface on the paper background. `padded={false}` for tables and edge-to-edge content. */
+/** A bordered white surface. `padded={false}` for tables and edge-to-edge content. */
 export function Card({ className, padded = true, children }: { className?: string; padded?: boolean; children: ReactNode }) {
-  return <div className={cn('rounded-3xl bg-white ring-1 ring-stone-900/7', padded && 'p-6 sm:p-7', className)}>{children}</div>;
+  return <div className={cn('rounded-lg border border-line bg-white', padded && 'p-5', className)}>{children}</div>;
 }
 
 /** Title row of a card, with an optional description and action on the right. */
 export function CardHeader({ title, description, action, className }: { title: ReactNode; description?: ReactNode; action?: ReactNode; className?: string }) {
   return (
-    <div className={cn('mb-5 flex items-start justify-between gap-4', className)}>
+    <div className={cn('mb-4 flex items-start justify-between gap-4', className)}>
       <div className="min-w-0">
-        <h2 className="font-display text-2xl leading-tight text-ink">{title}</h2>
-        {description && <p className="mt-1 text-sm text-stone-500">{description}</p>}
+        <h2 className="text-base font-semibold text-ink">{title}</h2>
+        {description && <p className="mt-0.5 text-sm text-muted">{description}</p>}
       </div>
       {action && <div className="shrink-0">{action}</div>}
     </div>
   );
 }
 
-/** One big number with a label — used in stat rows. */
+/** One number with a label — used in stat rows. */
 export function StatCard({ label, value, icon: Icon, hint, className }: { label: string; value: ReactNode; icon?: ComponentType<{ className?: string }>; hint?: ReactNode; className?: string }) {
   return (
-    <div className={cn('rounded-3xl bg-white p-5 ring-1 ring-stone-900/7 sm:p-6', className)}>
-      <div className="flex items-center justify-between gap-2">
-        <p className="eyebrow text-stone-500">{label}</p>
-        {Icon && <Icon className="size-4 text-stone-400" />}
-      </div>
-      <p className="mt-3 font-display text-[44px] leading-none tracking-tight text-ink tabular-nums">{value}</p>
-      {hint && <p className="mt-2 text-xs text-stone-500">{hint}</p>}
+    <div className={cn('rounded-lg border border-line bg-white p-4', className)}>
+      <p className="flex items-center gap-1.5 text-xs text-muted">{Icon && <Icon className="size-3.5" />}{label}</p>
+      <p className="mt-2 text-2xl font-semibold tracking-tight text-ink tabular-nums">{value}</p>
+      {hint && <p className="mt-0.5 text-xs text-muted">{hint}</p>}
     </div>
   );
 }
 
-const badgeColors = {
-  gray: 'bg-stone-100 text-stone-700 ring-stone-900/10',
-  green: 'bg-emerald-50 text-emerald-800 ring-emerald-700/15',
-  amber: 'bg-amber-50 text-amber-800 ring-amber-700/15',
-  red: 'bg-brand-50 text-brand-700 ring-brand-700/15',
-  ink: 'bg-ink text-paper ring-ink',
-  violet: 'bg-ink text-paper ring-ink',
-  blue: 'bg-sky-50 text-sky-800 ring-sky-700/15',
+const tagColors = {
+  gray: 'bg-tag-gray text-tag-gray-text',
+  green: 'bg-tag-green text-tag-green-text',
+  amber: 'bg-tag-yellow text-tag-yellow-text',
+  red: 'bg-tag-red text-tag-red-text',
+  blue: 'bg-tag-blue text-tag-blue-text',
+  violet: 'bg-tag-purple text-tag-purple-text',
+  orange: 'bg-tag-orange text-tag-orange-text',
+  pink: 'bg-tag-pink text-tag-pink-text',
 };
 
-export type BadgeColor = keyof typeof badgeColors;
+export type BadgeColor = keyof typeof tagColors;
 
-/** A small status pill. `dot` adds a colored dot in front. */
+/** A pastel tag, like a Notion select option. `dot` adds a small dot in front. */
 export function Badge({ color = 'gray', dot, className, children }: { color?: BadgeColor; dot?: boolean; className?: string; children: ReactNode }) {
   return (
-    <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap ring-1 ring-inset', badgeColors[color], className)}>
-      {dot && <span className="size-1.5 rounded-full bg-current" />}
+    <span className={cn('inline-flex items-center gap-1 rounded px-1.5 py-px text-xs whitespace-nowrap', tagColors[color], className)}>
+      {dot && <span className="size-1.5 rounded-full bg-current opacity-70" />}
       {children}
     </span>
   );

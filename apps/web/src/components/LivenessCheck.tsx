@@ -176,7 +176,7 @@ export function LivenessCheck({ searchId, attemptsLeft, onPassed }: Props) {
   const burstPercent = step === 'front' ? (captured / FRONT_FRAMES) * 100 : step === 'turn' ? (captured / TURN_FRAMES) * 100 : 0;
 
   return (
-    <div className="mx-auto max-w-md animate-scale-in overflow-hidden rounded-3xl bg-white shadow-elevated ring-1 ring-stone-900/6">
+    <div className="mx-auto max-w-md animate-scale-in overflow-hidden rounded-3xl bg-white shadow-pop ring-1 ring-line">
       {/* ---------- top: camera or illustration ---------- */}
       {/* Tall while the camera is on; a short banner otherwise, so instructions fit on a phone screen. */}
       <div className={`relative overflow-hidden bg-stone-900 ${cameraOn ? 'aspect-[4/5]' : 'h-36'}`}>
@@ -237,24 +237,24 @@ export function LivenessCheck({ searchId, attemptsLeft, onPassed }: Props) {
         {step === 'intro' && (
           <>
             <div className="text-center">
-              <h2 className="font-display text-3xl leading-tight text-ink">Quick live face check</h2>
-              <p className="mt-1 text-sm text-stone-600">The organizer protected these photos. It takes about 10 seconds and nothing is saved.</p>
+              <h2 className="text-xl font-semibold text-ink">Quick live face check</h2>
+              <p className="mt-1 text-sm text-muted">The organizer protected these photos. It takes about 10 seconds and nothing is saved.</p>
             </div>
             <ol className="space-y-3 text-sm">
               <li className="flex items-center gap-3">
-                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-paper text-ink ring-1 ring-stone-900/10"><ScanFace className="size-5" /></span>
+                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-paper text-ink ring-1 ring-line"><ScanFace className="size-5" /></span>
                 <span><b>Look straight</b> at the camera and hold still for a moment.</span>
               </li>
               <li className="flex items-center gap-3">
-                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-paper text-ink ring-1 ring-stone-900/10"><HeadTurnIcon className="size-6" /></span>
+                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-paper text-ink ring-1 ring-line"><HeadTurnIcon className="size-6" /></span>
                 <span>When the <b>arrow</b> appears, <b>slowly turn your head to your left</b>.</span>
               </li>
               <li className="flex items-center gap-3">
-                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-paper text-ink ring-1 ring-stone-900/10"><CheckCircle2 className="size-5" /></span>
+                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-paper text-ink ring-1 ring-line"><CheckCircle2 className="size-5" /></span>
                 <span>Look back — your photos open automatically.</span>
               </li>
             </ol>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 rounded-xl bg-paper p-3 text-xs text-stone-600">
+            <div className="flex flex-wrap gap-x-4 gap-y-1 rounded-xl bg-paper p-3 text-xs text-muted">
               <span className="flex items-center gap-1"><Lightbulb className="size-3.5" />Face a light or window</span>
               <span className="flex items-center gap-1"><Glasses className="size-3.5" />No sunglasses or mask</span>
               <span className="flex items-center gap-1"><ScanFace className="size-3.5" />Only you in view</span>
@@ -266,8 +266,8 @@ export function LivenessCheck({ searchId, attemptsLeft, onPassed }: Props) {
         {step === 'position' && (
           <>
             <div className="space-y-1 text-center">
-              <p className="font-display text-3xl leading-tight text-ink">Fit your face inside the oval</p>
-              <p className="text-sm text-stone-600">Make sure it's well lit. Take your time — nothing happens until you press the button.</p>
+              <p className="text-xl font-semibold text-ink">Fit your face inside the oval</p>
+              <p className="text-sm text-muted">Make sure it's well lit. Take your time — nothing happens until you press the button.</p>
             </div>
             <Button size="lg" className="w-full" onClick={runCheck} disabled={!cameraReady} loading={!cameraReady}>
               {cameraReady ? "I'm ready" : 'Starting camera…'}
@@ -278,13 +278,13 @@ export function LivenessCheck({ searchId, attemptsLeft, onPassed }: Props) {
         {/* Instructions sit below the camera so they never cover the face. */}
         {['countdown', 'front', 'turn', 'back'].includes(step) && (
           <div className="space-y-3 text-center">
-            <p className="font-display text-3xl leading-tight text-ink">
+            <p className="text-xl font-semibold text-ink">
               {step === 'countdown' && 'Get ready to look straight at the camera'}
               {step === 'front' && 'Hold still — look straight at the camera'}
               {step === 'turn' && 'Now slowly turn your head to your left'}
               {step === 'back' && 'Great! Look back at the camera'}
             </p>
-            <p className="text-sm text-stone-500">
+            <p className="text-sm text-muted">
               {step === 'turn'
                 ? "Keep turning until you're looking past the edge of the screen, like glancing over your shoulder."
                 : 'Keep your face inside the oval.'}
@@ -293,19 +293,19 @@ export function LivenessCheck({ searchId, attemptsLeft, onPassed }: Props) {
           </div>
         )}
 
-        {step === 'checking' && <p className="flex items-center justify-center gap-2 text-center font-semibold text-ink"><span className="size-4 animate-spin rounded-full border-2 border-brand-200 border-t-brand-600" />Checking… this takes a few seconds.</p>}
+        {step === 'checking' && <p className="flex items-center justify-center gap-2 text-center font-semibold text-ink"><span className="size-4 animate-spin rounded-full border-2 border-brand-100 border-t-brand-600" />Checking… this takes a few seconds.</p>}
         {step === 'passed' && <p className="text-center font-semibold text-emerald-700">Verified! Opening your photos…</p>}
 
         {step === 'failed' && (
           <div className="space-y-4 text-center">
-            <p className="rounded-xl bg-red-50 p-3 text-sm font-medium text-red-700 ring-1 ring-red-200 ring-inset">{message}</p>
+            <p className="rounded-xl bg-tag-red/70 p-3 text-sm font-medium text-tag-red-text ring-1 ring-tag-red ring-inset">{message}</p>
             {attempts > 0 ? (
               <>
                 <Button size="lg" className="w-full" onClick={startCamera}><RotateCcw className="size-5" />Try again</Button>
-                <p className="text-xs text-stone-500">{attempts} attempt{attempts === 1 ? '' : 's'} left</p>
+                <p className="text-xs text-muted">{attempts} attempt{attempts === 1 ? '' : 's'} left</p>
               </>
             ) : (
-              <p className="text-sm text-stone-600">No attempts left. Send a new selfie to the bot to get a fresh gallery link.</p>
+              <p className="text-sm text-muted">No attempts left. Send a new selfie to the bot to get a fresh gallery link.</p>
             )}
           </div>
         )}
