@@ -1,10 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <rect width="64" height="64" rx="16" fill="#141312"/>
+  <rect width="64" height="64" rx="14" fill="#191919"/>
   <!-- viewfinder corners -->
-  <path d="M15 24v-4.5a4.5 4.5 0 0 1 4.5-4.5H24M40 15h4.5a4.5 4.5 0 0 1 4.5 4.5V24M49 40v4.5a4.5 4.5 0 0 1-4.5 4.5H40M24 49h-4.5a4.5 4.5 0 0 1-4.5-4.5V40" stroke="#F5F3EE" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M15 24v-4.5a4.5 4.5 0 0 1 4.5-4.5H24M40 15h4.5a4.5 4.5 0 0 1 4.5 4.5V24M49 40v4.5a4.5 4.5 0 0 1-4.5 4.5H40M24 49h-4.5a4.5 4.5 0 0 1-4.5-4.5V40" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/>
   <!-- the face being found -->
-  <circle cx="32" cy="29.5" r="6" stroke="#F5F3EE" stroke-width="3.5"/>
-  <path d="M22.5 43.5c2-4.2 5.5-6.2 9.5-6.2s7.5 2 9.5 6.2" stroke="#F5F3EE" stroke-width="3.5" stroke-linecap="round"/>
-  <!-- safelight -->
-  <circle cx="47" cy="17" r="3.5" fill="#DF5636"/>
+  <circle cx="32" cy="29.5" r="6" stroke="#fff" stroke-width="3.5"/>
+  <path d="M22.5 43.5c2-4.2 5.5-6.2 9.5-6.2s7.5 2 9.5 6.2" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/>
 </svg>

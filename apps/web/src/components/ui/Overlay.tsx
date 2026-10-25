@@ -18,22 +18,22 @@ export function Modal({ title, description, onClose, children, wide }: { title: 
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 grid animate-fade-in place-items-center bg-ink/50 p-4 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-50 grid animate-fade-in place-items-center bg-black/30 p-4" onClick={onClose}>
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}
         tabIndex={-1}
-        className={cn('max-h-[calc(100dvh-2rem)] w-full animate-scale-in overflow-y-auto rounded-3xl bg-white p-6 shadow-elevated outline-none sm:p-8', wide ? 'max-w-2xl' : 'max-w-md')}
+        className={cn('max-h-[calc(100dvh-2rem)] w-full animate-scale-in overflow-y-auto rounded-lg bg-white p-6 shadow-pop outline-none', wide ? 'max-w-xl' : 'max-w-md')}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-5 flex items-start justify-between gap-4">
+        <div className="mb-4 flex items-start justify-between gap-4">
           <div>
-            <h2 className="font-display text-3xl leading-tight text-ink">{title}</h2>
-            {description && <p className="mt-1.5 text-sm text-stone-500">{description}</p>}
+            <h2 className="text-lg font-semibold text-ink">{title}</h2>
+            {description && <p className="mt-1 text-sm text-muted">{description}</p>}
           </div>
-          <button onClick={onClose} className="-m-1 rounded-full p-1.5 text-stone-400 transition hover:bg-stone-100 hover:text-ink" aria-label="Close"><X className="size-5" /></button>
+          <button onClick={onClose} className="-m-1 rounded-md p-1 text-muted transition hover:bg-hover hover:text-ink" aria-label="Close"><X className="size-5" /></button>
         </div>
         {children}
       </div>
@@ -54,7 +54,7 @@ type LightboxProps<T extends { id: string; url: string }> = {
 
 /**
  * Full-screen photo viewer: previous/next with buttons, arrow keys or a swipe,
- * a counter, and a filmstrip of thumbnails to jump to any photo.
+ * a counter, and a strip of thumbnails to jump to any photo.
  */
 export function Lightbox<T extends { id: string; url: string }>({ items, index, onIndexChange, onClose, actions }: LightboxProps<T>) {
   const item = items[index];
@@ -79,13 +79,13 @@ export function Lightbox<T extends { id: string; url: string }>({ items, index, 
   }, [index]);
 
   if (!item) return null;
-  const arrow = 'absolute top-1/2 z-10 hidden -translate-y-1/2 rounded-full bg-white/10 p-3 text-white backdrop-blur transition hover:bg-white/20 sm:block';
+  const arrow = 'absolute top-1/2 z-10 hidden -translate-y-1/2 rounded-full bg-white/10 p-2.5 text-white transition hover:bg-white/20 sm:block';
 
   return (
-    <div className="fixed inset-0 z-50 flex animate-fade-in flex-col bg-ink/97" onClick={onClose} role="dialog" aria-modal="true" aria-label="Photo viewer">
-      <div className="flex items-center justify-between p-4 text-white/70">
-        <span className="eyebrow tabular-nums">{String(index + 1).padStart(2, '0')} / {String(count).padStart(2, '0')}</span>
-        <button className="rounded-full bg-white/10 p-2 text-white transition hover:bg-white/20" aria-label="Close"><X className="size-5" /></button>
+    <div className="fixed inset-0 z-50 flex animate-fade-in flex-col bg-[#191919]/95" onClick={onClose} role="dialog" aria-modal="true" aria-label="Photo viewer">
+      <div className="flex items-center justify-between p-4 text-sm text-white/60">
+        <span className="tabular-nums">{index + 1} / {count}</span>
+        <button className="rounded-md p-1.5 text-white transition hover:bg-white/10" aria-label="Close"><X className="size-5" /></button>
       </div>
       <div
         className="relative flex min-h-0 flex-1 touch-pan-y items-center justify-center px-4 sm:px-20"
@@ -112,21 +112,21 @@ export function Lightbox<T extends { id: string; url: string }>({ items, index, 
           src={thumbnail(item.url, 1800, 'limit')}
           alt=""
           draggable={false}
-          className="max-h-full max-w-full animate-develop rounded-md object-contain select-none"
+          className="max-h-full max-w-full animate-fade-in rounded object-contain select-none"
           onClick={(e) => e.stopPropagation()}
         />
         {count > 1 && <button className={cn(arrow, 'right-5')} onClick={(e) => { e.stopPropagation(); go(1); }} aria-label="Next photo"><ChevronRight className="size-5" /></button>}
       </div>
       <div className="flex flex-col items-center gap-3 p-4" onClick={(e) => e.stopPropagation()}>
-        {actions && <div className="flex min-h-10 items-center justify-center gap-2">{actions(item)}</div>}
+        {actions && <div className="flex min-h-9 items-center justify-center gap-2">{actions(item)}</div>}
         {count > 1 && (
-          <div ref={stripRef} className="flex max-w-full gap-1.5 overflow-x-auto px-2 pb-1 [scrollbar-width:none]">
+          <div ref={stripRef} className="flex max-w-full gap-1 overflow-x-auto px-2 pb-1 [scrollbar-width:none]">
             {items.map((photo, i) => (
               <button
                 key={photo.id}
                 onClick={() => onIndexChange(i)}
                 aria-label={`Photo ${i + 1}`}
-                className={cn('size-12 shrink-0 overflow-hidden rounded-md transition duration-300', i === index ? 'opacity-100 ring-2 ring-white' : 'opacity-40 hover:opacity-80')}
+                className={cn('size-11 shrink-0 overflow-hidden rounded transition', i === index ? 'opacity-100 ring-2 ring-white' : 'opacity-40 hover:opacity-80')}
               >
                 <img src={thumbnail(photo.url, 120)} alt="" loading="lazy" className="size-full object-cover" />
               </button>
@@ -141,7 +141,7 @@ export function Lightbox<T extends { id: string; url: string }>({ items, index, 
 // ---------- Menu ----------
 
 /** A button that opens a small dropdown. Closes on a click outside, Escape, or picking an item. */
-export function Menu({ trigger, label, align = 'right', children }: { trigger: ReactNode; label: string; align?: 'left' | 'right'; children: ReactNode }) {
+export function Menu({ trigger, label, align = 'right', className, children }: { trigger: ReactNode; label: string; align?: 'left' | 'right'; className?: string; children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const close = useCallback(() => setOpen(false), []);
@@ -155,7 +155,7 @@ export function Menu({ trigger, label, align = 'right', children }: { trigger: R
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 rounded-full p-0.5 transition hover:ring-2 hover:ring-stone-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+        className={cn('flex items-center gap-2 rounded-md transition hover:bg-hover focus-visible:outline-2 focus-visible:outline-brand-500', className)}
       >
         {trigger}
       </button>
@@ -163,10 +163,7 @@ export function Menu({ trigger, label, align = 'right', children }: { trigger: R
         <div
           role="menu"
           onClick={close}
-          className={cn(
-            'absolute top-full z-40 mt-3 w-64 origin-top-right animate-scale-in rounded-2xl bg-white p-1.5 shadow-elevated ring-1 ring-stone-900/8',
-            align === 'right' ? 'right-0' : 'left-0',
-          )}
+          className={cn('absolute top-full z-40 mt-1 w-60 animate-scale-in rounded-lg bg-white p-1 shadow-pop', align === 'right' ? 'right-0' : 'left-0')}
         >
           {children}
         </div>
@@ -175,7 +172,7 @@ export function Menu({ trigger, label, align = 'right', children }: { trigger: R
   );
 }
 
-const menuItemClass = 'flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm text-stone-700 transition hover:bg-paper hover:text-ink [&>svg]:size-4 [&>svg]:text-stone-400';
+const menuItemClass = 'flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm text-ink transition hover:bg-hover [&>svg]:size-4 [&>svg]:text-muted';
 
 export function MenuLink({ className, ...props }: LinkProps) {
   return <Link role="menuitem" className={cn(menuItemClass, className)} {...props} />;

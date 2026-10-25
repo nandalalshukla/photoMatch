@@ -1,16 +1,19 @@
-/** Shell around every organizer page: top navigation, account menu and page content. */
-import { LogOut, Plus, Shield, UserRound } from 'lucide-react';
+/**
+ * Shell around every organizer page, laid out like Notion: a quiet gray sidebar
+ * (account menu + pages) on the left, the page itself on the right. On small
+ * screens the sidebar becomes a top bar.
+ */
+import { ChevronsUpDown, LogOut } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router';
 import { cn } from '../lib/cn';
 import { signOut, useSession } from '../lib/auth-client';
 import { Logo } from './Logo';
-import { Avatar, ButtonLink, Menu, MenuButton, MenuLink } from './ui';
+import { Avatar, Menu, MenuButton, MenuLink } from './ui';
 
-/** Editorial tabs: plain text, with an ink underline under the current page. */
 const navClass = ({ isActive }: { isActive: boolean }) =>
   cn(
-    'relative inline-flex h-16 items-center text-sm transition after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:origin-left after:bg-ink after:transition-transform after:duration-300',
-    isActive ? 'font-medium text-ink after:scale-x-100' : 'text-stone-500 after:scale-x-0 hover:text-ink',
+    'flex items-center gap-2.5 rounded-md px-2 py-1 text-sm whitespace-nowrap transition-colors',
+    isActive ? 'bg-hover font-medium text-ink' : 'text-muted hover:bg-hover hover:text-ink',
   );
 
 export function DashboardLayout() {
@@ -24,42 +27,61 @@ export function DashboardLayout() {
     navigate('/');
   };
 
-  const links = (
-    <>
-      <NavLink to="/dashboard" end className={navClass}>Events</NavLink>
-      {isAdmin && <NavLink to="/dashboard/admin" className={navClass}>Admin</NavLink>}
-    </>
+  const pages = [
+    { to: '/dashboard', end: true, emoji: '🗓️', label: 'Events' },
+    { to: '/dashboard/events/new', end: true, emoji: '➕', label: 'New event' },
+    { to: '/dashboard/account', end: true, emoji: '⚙️', label: 'Settings' },
+    ...(isAdmin ? [{ to: '/dashboard/admin', end: true, emoji: '🛡️', label: 'Admin' }] : []),
+  ];
+  const links = pages.map((page) => (
+    <NavLink key={page.to} to={page.to} end={page.end} className={navClass}>
+      <span className="w-4 text-center text-[13px]" aria-hidden>{page.emoji}</span>{page.label}
+    </NavLink>
+  ));
+
+  const accountMenu = (align: 'left' | 'right') => (
+    <Menu
+      label="Account menu"
+      align={align}
+      className="w-full p-1.5"
+      trigger={
+        <>
+          <Avatar name={user?.name} image={user?.image} size="sm" />
+          <span className="min-w-0 flex-1 truncate text-left text-sm font-medium text-ink">{user?.name}</span>
+          <ChevronsUpDown className="size-3.5 shrink-0 text-faint" />
+        </>
+      }
+    >
+      <p className="truncate px-2 pt-1.5 pb-2 text-xs text-muted">{user?.email}</p>
+      <MenuLink to="/dashboard/account"><span className="w-4 text-center text-[13px]">⚙️</span>Settings</MenuLink>
+      <MenuLink to="/"><span className="w-4 text-center text-[13px]">🌐</span>Home page</MenuLink>
+      <div className="my-1 h-px bg-line" />
+      <MenuButton onClick={handleSignOut}><LogOut />Log out</MenuButton>
+    </Menu>
   );
 
   return (
-    <div className="min-h-dvh bg-paper">
-      <header className="sticky top-0 z-30 border-b border-stone-300/60 bg-paper/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-6xl items-center gap-8 px-4 sm:px-6">
+    <div className="min-h-dvh bg-white md:flex">
+      {/* Sidebar (desktop) */}
+      <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-line bg-paper px-2 py-3 md:flex">
+        {accountMenu('left')}
+        <nav className="mt-4 space-y-0.5">{links}</nav>
+        <div className="mt-auto px-2 pt-4"><Logo to="/" className="opacity-60 transition hover:opacity-100" /></div>
+      </aside>
+
+      {/* Top bar (mobile) */}
+      <header className="sticky top-0 z-30 border-b border-line bg-white/95 backdrop-blur md:hidden">
+        <div className="flex h-12 items-center justify-between px-3">
           <Logo to="/dashboard" />
-          <nav className="hidden items-center gap-7 sm:flex">{links}</nav>
-          <div className="ml-auto flex items-center gap-3">
-            <ButtonLink to="/dashboard/events/new" size="sm" className="hidden sm:inline-flex"><Plus className="size-4" />New event</ButtonLink>
-            <Menu label="Account menu" trigger={<Avatar name={user?.name} image={user?.image} size="sm" />}>
-              <div className="flex items-center gap-3 px-3 pt-2 pb-3">
-                <Avatar name={user?.name} image={user?.image} />
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-ink">{user?.name}</p>
-                  <p className="truncate text-xs text-stone-500">{user?.email}</p>
-                </div>
-              </div>
-              <div className="my-1 h-px bg-stone-100" />
-              <MenuLink to="/dashboard/account"><UserRound />Account settings</MenuLink>
-              {isAdmin && <MenuLink to="/dashboard/admin"><Shield />Admin</MenuLink>}
-              <div className="my-1 h-px bg-stone-100" />
-              <MenuButton onClick={handleSignOut}><LogOut />Sign out</MenuButton>
-            </Menu>
-          </div>
+          <div className="w-44">{accountMenu('right')}</div>
         </div>
-        {/* Mobile navigation */}
-        <nav className="-mt-2 flex gap-6 overflow-x-auto px-4 [&>a]:h-10 sm:hidden">{links}</nav>
+        <nav className="flex gap-1 overflow-x-auto px-3 pb-2">{links}</nav>
       </header>
-      <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
-        <Outlet />
+
+      <main className="min-w-0 flex-1">
+        <div className="mx-auto max-w-5xl px-5 py-10 sm:px-12 sm:py-14">
+          <Outlet />
+        </div>
       </main>
     </div>
   );

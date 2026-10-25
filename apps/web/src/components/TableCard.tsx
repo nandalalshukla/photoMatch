@@ -22,14 +22,15 @@ type Props = {
 export function TableCard({ eventName, guestUrl, code, qrRef, dimmed, large, className }: Props) {
   const qrSize = large ? 260 : 168;
   return (
-    <div className={cn('relative mx-auto flex w-full flex-col items-center bg-white text-center text-ink shadow-print ring-1 ring-stone-900/10', large ? 'max-w-md rounded-2xl px-10 py-12' : 'rounded-2xl px-6 py-7', className)}>
-      <p className="eyebrow text-stone-500">Find your photos</p>
-      <h3 className={cn('mt-3 font-display leading-[1.05] text-balance', large ? 'text-5xl' : 'text-[28px]')}>{eventName}</h3>
-      <div ref={qrRef} className={cn('mt-6 rounded-xl p-3 ring-1 ring-stone-200 transition', dimmed && 'opacity-40 grayscale')}>
-        <QRCodeCanvas value={guestUrl} size={qrSize} level="H" fgColor="#141312" imageSettings={{ src: '/logo.svg', height: qrSize * 0.2, width: qrSize * 0.2, excavate: true }} />
+    <div className={cn('relative mx-auto flex w-full flex-col items-center rounded-lg border border-line bg-white text-center text-ink', large ? 'max-w-md px-10 py-10' : 'px-6 py-6', className)}>
+      <p className={large ? 'text-3xl' : 'text-2xl'} aria-hidden>📸</p>
+      <p className="mt-2 text-xs text-muted">Find your photos from</p>
+      <h3 className={cn('mt-1 font-bold tracking-tight text-balance', large ? 'text-3xl' : 'text-xl')}>{eventName}</h3>
+      <div ref={qrRef} className={cn('mt-5 rounded-md border border-line p-2.5 transition', dimmed && 'opacity-40 grayscale')}>
+        <QRCodeCanvas value={guestUrl} size={qrSize} level="H" fgColor="#191919" imageSettings={{ src: '/logo.svg', height: qrSize * 0.2, width: qrSize * 0.2, excavate: true }} />
       </div>
-      <p className={cn('mt-6 text-stone-600', large ? 'text-base' : 'text-[13px]')}>Scan with your phone camera, then send a selfie.<br />We'll send you every photo you're in.</p>
-      <div className="mt-6 flex w-full items-center justify-between border-t border-dashed border-stone-300 pt-4 text-[11px] text-stone-400">
+      <p className={cn('mt-5 text-muted', large ? 'text-base' : 'text-[13px]')}>Scan with your phone camera, then send a selfie.<br />We'll send you every photo you're in.</p>
+      <div className="mt-5 flex w-full items-center justify-between border-t border-line pt-3 text-[11px] text-faint">
         <span className="font-mono tracking-wider">{code}</span>
         <span>PhotoMatch AI</span>
       </div>

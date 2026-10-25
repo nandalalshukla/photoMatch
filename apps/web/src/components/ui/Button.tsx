@@ -4,28 +4,26 @@ import { LoaderCircle } from 'lucide-react';
 import { cn } from '../../lib/cn';
 
 const base =
-  'relative inline-flex shrink-0 items-center justify-center gap-2 rounded-full font-medium whitespace-nowrap select-none transition-[background-color,box-shadow,color,transform] duration-200 ease-editorial active:scale-[0.97] disabled:pointer-events-none disabled:opacity-45 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink';
+  'inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md font-medium whitespace-nowrap select-none transition-colors duration-150 disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500';
 
 const variants = {
-  /** The main action on a screen: an ink pill. */
-  primary: 'bg-ink text-paper shadow-xs hover:bg-ink-soft hover:-translate-y-px',
-  secondary: 'bg-white text-ink ring-1 ring-stone-300 ring-inset hover:ring-ink hover:-translate-y-px',
-  ghost: 'text-stone-600 hover:bg-stone-900/5 hover:text-ink',
-  danger: 'bg-brand-600 text-white hover:bg-brand-700',
-  /** Alias of primary, kept for readability on dark-on-light marketing blocks. */
-  dark: 'bg-ink text-paper hover:bg-ink-soft hover:-translate-y-px',
-  /** For photos and dark backgrounds. */
-  white: 'bg-paper text-ink hover:bg-white hover:-translate-y-px',
-  /** Frosted glass, for use on top of photos. */
-  glass: 'bg-white/15 text-white ring-1 ring-white/25 ring-inset backdrop-blur-md hover:bg-white/25',
+  /** The main action on a screen. */
+  primary: 'bg-brand-500 text-white hover:bg-brand-600',
+  secondary: 'bg-white text-ink shadow-xs ring-1 ring-line ring-inset hover:bg-paper',
+  ghost: 'text-muted hover:bg-hover hover:text-ink',
+  danger: 'bg-[#eb5757] text-white hover:bg-[#d84a4a]',
+  /** Black, for the few places that need the most weight (landing page). */
+  dark: 'bg-ink text-white hover:bg-black',
+  /** For dark backgrounds. */
+  white: 'bg-white text-ink hover:bg-paper',
 };
 
 const sizes = {
-  sm: 'h-8 px-3.5 text-[13px]',
-  md: 'h-10 px-5 text-sm',
-  lg: 'h-12 px-7 text-[15px]',
+  sm: 'h-7 px-2.5 text-[13px]',
+  md: 'h-9 px-3.5 text-sm',
+  lg: 'h-11 px-5 text-[15px]',
   /** Square, for a lone icon. Give it an aria-label. */
-  icon: 'size-10',
+  icon: 'size-9',
 };
 
 export type ButtonVariant = keyof typeof variants;
