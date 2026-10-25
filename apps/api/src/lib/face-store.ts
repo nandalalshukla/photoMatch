@@ -34,11 +34,13 @@ export async function savePhotoFaces(photo: { id: string; eventId: string }, emb
 export async function findMatchingPhotos(eventId: string, embedding: number[], minSimilarity: number) {
   const vector = toVector(embedding);
   return prisma.$queryRaw<{ photoId: string; similarity: number }[]>`
-    SELECT "photoId", MAX(1 - ("embedding" <=> ${vector}::vector))::float AS "similarity"
+    SELECT "Face"."photoId", MAX(1 - ("Face"."embedding" <=> ${vector}::vector))::float AS "similarity"
     FROM "Face"
-    WHERE "eventId" = ${eventId}
-      AND 1 - ("embedding" <=> ${vector}::vector) >= ${minSimilarity}
-    GROUP BY "photoId"
+    JOIN "Photo" ON "Photo"."id" = "Face"."photoId"
+    WHERE "Face"."eventId" = ${eventId}
+      AND "Photo"."approved" = true -- contributed photos awaiting review are never shown to guests
+      AND 1 - ("Face"."embedding" <=> ${vector}::vector) >= ${minSimilarity}
+    GROUP BY "Face"."photoId"
     ORDER BY "similarity" DESC
     LIMIT 1000`;
 }

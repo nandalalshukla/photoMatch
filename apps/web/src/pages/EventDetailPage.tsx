@@ -3,15 +3,19 @@
  *   • title + a list of properties (status, code, progress, counts)
  *   • share: table card with QR code, link, print/download
  *   • guest access and liveness switches
+ *   • photos waiting for review (added through the upload link)
+ *   • the upload link and co-organizers
  *   • all photos, with "add more" and delete
  */
 import { useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  CalendarDays, Check, CircleDot, Copy, Download, ExternalLink, Hash, ImagePlus, Images, Loader, LoaderCircle, Power, Printer, ScanFace, ShieldCheck, Trash2, Users,
+  CalendarDays, Check, CircleDot, Crown, Copy, Download, ExternalLink, Hash, ImagePlus, Images, Loader, LoaderCircle, Power, Printer, ScanFace, ShieldCheck, Trash2, Users,
 } from 'lucide-react';
 import { EventStateBadge } from '../components/EventStateBadge';
+import { Collaborators } from '../components/event/Collaborators';
+import { ReviewQueue } from '../components/event/ReviewQueue';
 import { PhotoDropzone } from '../components/PhotoDropzone';
 import { PrintOnly, TableCard } from '../components/TableCard';
 import { UploadProgressCard, UploadSummaryText } from '../components/UploadProgressCard';
@@ -69,7 +73,10 @@ export function EventDetailPage() {
     queryFn: async () => (await api<{ photos: Photo[] }>(`/events/${eventId}/photos`)).photos,
     refetchInterval: event?.progress.state === 'PROCESSING' ? 5000 : false,
   });
-  const photos = photosQuery.data ?? [];
+  const allPhotos = photosQuery.data ?? [];
+  // Approved photos are the event's photos; the rest wait in the review queue.
+  const photos = allPhotos.filter((p) => p.approved);
+  const pending = allPhotos.filter((p) => !p.approved);
 
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: ['event', eventId] });
@@ -140,7 +147,9 @@ export function EventDetailPage() {
           <>
             <a href={event.guestUrl} target="_blank" rel="noreferrer" className={buttonClass('ghost', 'sm')}><ExternalLink className="size-4" />Guest page</a>
             <Button size="sm" onClick={() => setShowUpload(true)}><ImagePlus className="size-4" />Add photos</Button>
-            <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(true)} aria-label="Delete event" title="Delete event"><Trash2 className="size-4" /></Button>
+            {event.role === 'owner' && (
+              <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(true)} aria-label="Delete event" title="Delete event"><Trash2 className="size-4" /></Button>
+            )}
           </>
         }
         meta={
@@ -160,6 +169,11 @@ export function EventDetailPage() {
               { icon: <Images />, label: 'Photos', value: `${progress.total.toLocaleString()}${progress.failed ? ` · ${progress.failed} failed` : ''}` },
               { icon: <Users />, label: 'Guest searches', value: event.searchCount.toLocaleString() },
               { icon: <Hash />, label: 'Guest code', value: <span className="font-mono text-[13px]">{event.publicCode}</span> },
+              {
+                icon: <Crown />,
+                label: 'Owner',
+                value: event.role === 'owner' ? 'You' : <>{event.owner?.name ?? 'Unknown'} <span className="text-muted">· you're a co-organizer</span></>,
+              },
               { icon: <CalendarDays />, label: 'Created', value: new Date(event.createdAt).toLocaleDateString(undefined, { dateStyle: 'long' }) },
             ]}
           />
@@ -176,6 +190,8 @@ export function EventDetailPage() {
           <button onClick={() => setUploadSummary(null)} className="rounded px-1.5 py-0.5 text-xs text-muted transition hover:bg-hover hover:text-ink">Dismiss</button>
         </div>
       )}
+
+      {pending.length > 0 && <ReviewQueue eventId={event.id} photos={pending} onChanged={refresh} />}
 
       <div className="grid animate-enter gap-10 border-t border-line pt-8 lg:grid-cols-2">
         {/* Share */}
@@ -221,6 +237,8 @@ export function EventDetailPage() {
           <div className="mt-3"><ErrorText>{update.error?.message}</ErrorText></div>
         </section>
       </div>
+
+      <Collaborators event={event} onChanged={refresh} />
 
       {/* Photos */}
       <section className="mt-10 border-t border-line pt-8">
@@ -292,6 +310,7 @@ export function EventDetailPage() {
           onClose={() => setViewing(null)}
           actions={(photo) => (
             <>
+              {photo.uploaderName && <span className="text-[13px] text-white/60">by {photo.uploaderName}</span>}
               <span className="inline-flex h-7 items-center gap-1.5 rounded-md bg-white/10 px-2.5 text-[13px] text-white">
                 <ScanFace className="size-4" />{photo.status === 'READY' ? `${photo.faceCount} face${photo.faceCount === 1 ? '' : 's'} found` : photo.status.toLowerCase()}
               </span>

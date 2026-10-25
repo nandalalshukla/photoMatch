@@ -109,6 +109,9 @@ model Event {
   guestAccess      Boolean  @default(true)
   // NEW in PhotoMatch: guests must pass a liveness check before seeing photos.
   livenessRequired Boolean  @default(false)
+  // Secret part of the contributor upload link (/u/<token>). Anyone with the link
+  // can add photos, which wait for an organizer's approval. Null = link switched off.
+  uploadToken      String?  @unique
   ownerId          String
   owner            User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   createdAt        DateTime @default(now())
@@ -118,8 +121,23 @@ model Event {
   faces        Face[]
   searches     GuestSearch[]
   chatSessions ChatSession[]
+  members      EventMember[]
 
   @@index([ownerId])
+}
+
+// A co-organizer: someone the owner invited by email to help run an event.
+// Access goes to the verified account with this email address — so the person
+// can sign up after being invited, and nothing has to be "accepted".
+model EventMember {
+  id        String   @id @default(uuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  email     String // always stored lower-case
+  createdAt DateTime @default(now())
+
+  @@unique([eventId, email])
+  @@index([email])
 }
 
 // Progress of one photo through the pipeline. Event progress is calculated by
@@ -144,6 +162,14 @@ model Photo {
   height       Int?
   status       PhotoStatus @default(PROCESSING)
   faceCount    Int         @default(0)
+  // Who added the photo: the organizer's or co-organizer's account, or — for the
+  // upload link — the name the contributor typed (uploadedById is then empty).
+  uploadedById String?
+  uploaderName String?
+  // Photos from the upload link wait for an organizer to approve them. Their faces
+  // are indexed straight away (so approving is instant), but guest searches only
+  // ever match approved photos, and they don't count towards the event's progress.
+  approved     Boolean     @default(true)
   createdAt    DateTime    @default(now())
 
   faces   Face[]
@@ -151,6 +177,7 @@ model Photo {
 
   @@unique([eventId, contentHash])
   @@index([eventId, status])
+  @@index([eventId, approved])
 }
 
 // One row per face found in an event photo.

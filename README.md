@@ -38,7 +38,8 @@ with a simpler architecture, a new design, and three new features.
 - Create events, drag-and-drop thousands of photos (uploaded straight to Cloudinary).
 - **Duplicate photos are skipped automatically** — a file picked twice, a renamed copy, or a photo the event already has is never uploaded or analysed again. After an interrupted upload, just re-add the whole folder: only the missing photos are sent.
 - Live progress while the AI analyses faces; the page updates by itself.
-- A QR code + link to share, downloadable as PNG.
+- A QR code + link to share, downloadable as PNG or as a printable table card.
+- **Add photos together**: invite **co-organizers** by email (they add photos directly and can review, but can't delete the event), and/or switch on an **upload link** anyone can use without an account — photographers, friends, family. Photos from the link wait in a **"To review"** list; guests can never find a photo until an organizer approves it. Every photo shows who added it.
 - Switch guest search on/off and **liveness protection** on/off at any time.
 - Account page: change name/password, see signed-in devices, sign them out.
 - Admin page: platform totals, user management (make admin, ban), latest events.
