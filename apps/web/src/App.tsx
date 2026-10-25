@@ -1,7 +1,7 @@
 /**
  * All pages of the app and their URLs.
  *
- * Public:     /  /e/:code (guest page)  /g/:searchId (private gallery)
+ * Public:     /  /e/:code (guest page)  /g/:searchId (private gallery)  /u/:token (contributor upload link)
  * Auth:       /sign-in  /sign-up  /forgot-password  /reset-password
  * Organizer:  /dashboard/...  (must be signed in)
  */
@@ -18,6 +18,7 @@ import { AccountPage } from './pages/AccountPage';
 import { AdminPage } from './pages/AdminPage';
 import { GuestEventPage } from './pages/GuestEventPage';
 import { GalleryPage } from './pages/GalleryPage';
+import { ContributePage } from './pages/ContributePage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 /** Start each new page at the top (the browser keeps the old scroll position otherwise). */
@@ -37,6 +38,7 @@ export function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/e/:code" element={<GuestEventPage />} />
         <Route path="/g/:searchId" element={<GalleryPage />} />
+        <Route path="/u/:token" element={<ContributePage />} />
 
         <Route element={<GuestOnly />}>
           <Route path="/sign-in" element={<SignInPage />} />
