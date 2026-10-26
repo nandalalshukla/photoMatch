@@ -21,10 +21,11 @@ private gallery of their own photos within seconds.
 7. [Testing the bots locally](#testing-the-bots-locally-telegram--whatsapp)
 8. [Liveness detection in detail](#liveness-detection-in-detail)
 9. [Tests](#tests)
-10. [Deploying](#deploying)
-11. [Model licenses](#model-licenses)
-12. [Security notes](#security-notes)
-13. [Troubleshooting](#troubleshooting)
+10. [Planning new features](#planning-new-features-devpost-learn-skill-pack)
+11. [Deploying](#deploying)
+12. [Model licenses](#model-licenses)
+13. [Security notes](#security-notes)
+14. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -382,6 +383,30 @@ What was verified while building this project:
 - **Model port check:** our ONNX Runtime code was compared with the `insightface` package on 11 images (group, flipped, rotated, cropped, resized): identical faces found, identical boxes, embeddings identical (cosine ≥ 0.999999), head angle within ~2°.
 - **Full pipeline (33 checks)** against the real database and AI models, with Telegram/WhatsApp/Cloudinary servers simulated: sign-up → blocked until verified → sign-in; event creation; worker indexing; Telegram `/start` + selfie → correct matches; WhatsApp signed webhook + verify handshake + bad-signature rejection; gallery locked; head-not-turned and multiple-face rejections; forwarded link (different face) rejected; correct face unlocks; forged cookie rejected; lockout after 5 attempts; guest access off closes page, gallery and bot; event deletion cascades all face data.
 - **Browser run (Chromium):** landing, sign-up, verify link, create event, event page, guest page (mobile), live camera check with a webcam feed (correctly asked to turn the head), gallery, ZIP download, 404 page; production build served by the API with strict CSP — no console errors.
+
+---
+
+## Planning new features (Devpost Learn Skill Pack)
+
+New features are planned with the [Devpost Learn Skill Pack](https://github.com/challengepost/learn-ai-basics)
+(MIT, © Devpost), added to this repo in `.agents/skills/` (read by Codex, Cursor and other
+agents) and `.claude/skills/` (Claude Code). It was added **after** the first version of
+PhotoMatch AI was built; the planning documents it produces describe new work only.
+
+It teaches *plan before you build* through **flipped interaction**: instead of you giving the
+AI instructions, the AI interviews you one question at a time and writes the plan from your
+answers. Run the skills in order inside your coding agent:
+
+| Skill | What happens | Output |
+| --- | --- | --- |
+| `1-start` | Introduce the feature idea and your experience | `devpost/learner-profile.md` (git-ignored) |
+| `2-scope` | Sharpen the idea and define "done" | `devpost/scope.md` |
+| `3-prd` | Product interview: screens, behaviour, edge cases | `devpost/prd.md` |
+| `4-spec` | Agree the technical plan | `devpost/spec.md` |
+| `5-build` | Build in verified, committed steps | `devpost/checklist.md` |
+| `6-ship` | Demo video, repo, write-up | — |
+
+To update the skills later: `npx skills add challengepost/learn-ai-basics --all -y`.
 
 ---
 

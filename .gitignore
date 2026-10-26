@@ -25,3 +25,6 @@ apps/ai/models/
 
 # Test images (downloaded on first test run)
 apps/ai/tests/.images/
+
+# Devpost Learn Skill Pack: personal learning context stays out of commits
+/devpost/learner-profile.md
