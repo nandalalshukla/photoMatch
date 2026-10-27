@@ -1,0 +1,31 @@
+% Guest search sequence (double-column figure).
+\begin{tikzpicture}[
+  font=\scriptsize, >=Latex,
+  actor/.style={draw, rounded corners=2pt, minimum width=21mm, minimum height=7mm, align=center, fill=gray!12, line width=0.5pt},
+  life/.style={dashed, gray, line width=0.4pt},
+  msg/.style={->, line width=0.6pt},
+  ret/.style={->, dashed, line width=0.6pt}]
+
+\newcommand{\msg}[5]{\draw[#5] (#2,-#1*6.6mm) -- node[above, inner sep=1.2pt, pos=0.5] {#4} (#3,-#1*6.6mm);
+  \node[circle, draw, inner sep=0.5pt, fill=white, font=\tiny] at (-1.2,-#1*6.6mm) {#1};}
+
+\node[actor] (g)   at (0,0)    {Guest};
+\node[actor] (p)   at (3.1,0)  {Messenger\\platform};
+\node[actor] (api) at (6.2,0)  {Node API};
+\node[actor] (w)   at (9.3,0)  {Worker};
+\node[actor] (ai)  at (12.4,0) {AI service};
+\node[actor] (db)  at (15.5,0) {PostgreSQL\\+ pgvector};
+\foreach \n in {g,p,api,w,ai,db} { \draw[life] (\n.south) -- ++(0,-7.4); }
+
+\msg{1}{0}{3.1}{selfie + event code}{msg}
+\msg{2}{3.1}{6.2}{webhook (verified)}{msg}
+\msg{3}{6.2}{9.3}{enqueue job}{msg}
+\msg{4}{9.3}{12.4}{\texttt{/faces/selfie}}{msg}
+\msg{5}{12.4}{9.3}{512-d embedding}{ret}
+\msg{6}{9.3}{15.5}{cosine search inside the event}{msg}
+\msg{7}{15.5}{9.3}{photo ids + similarity}{ret}
+\msg{8}{9.3}{3.1}{reply with gallery link}{ret}
+\msg{9}{3.1}{0}{gallery link}{ret}
+\msg{10}{0}{6.2}{open link, (liveness frames)}{msg}
+\msg{11}{6.2}{0}{photos, signed cookie}{ret}
+\end{tikzpicture}
