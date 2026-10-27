@@ -1,0 +1,67 @@
+{
+  "image": "group.jpg",
+  "image_size_after_resize": [
+    886,
+    1280
+  ],
+  "jpeg_bytes": 192022,
+  "cpu_count": 4,
+  "results": [
+    {
+      "uvicorn_workers": 1,
+      "concurrent_clients": 1,
+      "requests": 48,
+      "photos_per_second": 1.9916080892042958,
+      "latency_median_ms": 499.46911850020115,
+      "latency_p95_ms": 536.1861490000592
+    },
+    {
+      "uvicorn_workers": 1,
+      "concurrent_clients": 2,
+      "requests": 48,
+      "photos_per_second": 1.9589670613661871,
+      "latency_median_ms": 1015.9948700002133,
+      "latency_p95_ms": 1088.2814659998985
+    },
+    {
+      "uvicorn_workers": 1,
+      "concurrent_clients": 4,
+      "requests": 48,
+      "photos_per_second": 1.998671342585382,
+      "latency_median_ms": 1998.1155964999289,
+      "latency_p95_ms": 2075.8782529997006
+    },
+    {
+      "uvicorn_workers": 2,
+      "concurrent_clients": 2,
+      "requests": 48,
+      "photos_per_second": 1.3223945159451655,
+      "latency_median_ms": 1627.3228170000493,
+      "latency_p95_ms": 2008.6736529997324
+    },
+    {
+      "uvicorn_workers": 2,
+      "concurrent_clients": 4,
+      "requests": 48,
+      "photos_per_second": 1.1912349786471312,
+      "latency_median_ms": 3160.446303499839,
+      "latency_p95_ms": 4982.3786709998785
+    },
+    {
+      "uvicorn_workers": 4,
+      "concurrent_clients": 4,
+      "requests": 48,
+      "photos_per_second": 1.1409050558820657,
+      "latency_median_ms": 3249.7821719998683,
+      "latency_p95_ms": 5784.752600000047
+    },
+    {
+      "uvicorn_workers": 4,
+      "concurrent_clients": 8,
+      "requests": 48,
+      "photos_per_second": 1.1951463403437461,
+      "latency_median_ms": 4403.0302205001135,
+      "latency_p95_ms": 14059.756696000022
+    }
+  ]
+}

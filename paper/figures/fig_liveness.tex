@@ -1,0 +1,41 @@
+% Liveness protocol (double-column figure).
+\begin{tikzpicture}[
+  font=\scriptsize, >=Latex,
+  st/.style={draw, rounded corners=2pt, align=center, minimum height=10mm, minimum width=30mm, inner sep=2pt, fill=gray!10, line width=0.5pt},
+  ck/.style={draw, rounded corners=2pt, align=center, minimum height=11mm, minimum width=30mm, inner sep=2pt, fill=gray!22, line width=0.5pt},
+  ok/.style={draw, rounded corners=2pt, align=center, minimum height=10mm, inner sep=3pt, fill=white, line width=1pt},
+  flow/.style={->, line width=0.6pt},
+  note/.style={font=\scriptsize\itshape, align=left}]
+
+% client row (left to right)
+\node[st] (c1) at (0,0)    {\textbf{A} Guided setup\\tips, face in oval};
+\node[st] (c2) at (3.8,0)  {\textbf{B} Ready button\\3-2-1 countdown};
+\node[st] (c3) at (7.6,0)  {\textbf{C} Look straight\\4 frames, 300\,ms apart};
+\node[st] (c4) at (11.4,0) {\textbf{D} Turn head\\12 frames, 300\,ms apart};
+\node[st] (c5) at (15.2,0) {\textbf{E} Upload\\one multipart request};
+
+% server row (right to left)
+\node[ck] (s1) at (15.2,-2.6) {\textbf{F} Select frames\\most frontal,\\most turned};
+\node[ck] (s2) at (11.4,-2.6) {\textbf{G} Head turn\\straight $|\mathrm{yaw}|\le 15^\circ$\\turn $|\Delta\mathrm{yaw}|\ge 20^\circ$};
+\node[ck] (s3) at (7.6,-2.6)  {\textbf{H} Same person\\cos(straight, turned)\\$\ge 0.3$};
+\node[ck] (s4) at (3.8,-2.6)  {\textbf{I} Anti-spoof\\both frames:\\P(real) $\ge 0.7$};
+\node[ck] (s5) at (0,-2.6)    {\textbf{J} Identity\\cos(live, selfie)\\$\ge 0.45$};
+
+% outcomes
+\node[ok, minimum width=34mm] (pass) at (0,-5.2) {\textbf{Pass}\\signed cookie, 30\,min};
+\node[ok, minimum width=112mm] (fail) at (8.5,-5.2) {\textbf{Fail:} reason code and attempts left (at most 5 per gallery link)};
+
+\draw[flow] (c1) -- (c2); \draw[flow] (c2) -- (c3); \draw[flow] (c3) -- (c4); \draw[flow] (c4) -- (c5);
+\draw[flow] (c5) -- (s1);
+\draw[flow] (s1) -- (s2); \draw[flow] (s2) -- (s3); \draw[flow] (s3) -- (s4); \draw[flow] (s4) -- (s5);
+\draw[flow] (s5) -- node[right, pos=0.5] {all pass} (pass);
+
+\draw[flow, dashed] (s2.south) -- node[right, pos=0.45, align=left] {\textsc{not\_facing\_camera}\\\textsc{head\_not\_turned}} (s2.south |- fail.north);
+\draw[flow, dashed] (s3.south) -- node[right, pos=0.45] {\textsc{different\_people}} (s3.south |- fail.north);
+\draw[flow, dashed] (s4.south) -- node[right, pos=0.45] {\textsc{spoof\_detected}} (s4.south |- fail.north);
+
+\node[note, anchor=south west] at ([yshift=2mm]c1.north west) {Guest's browser (camera)};
+\node[note, anchor=south west] at ([yshift=8.5mm]s1.north east) {};
+\node[note, anchor=north west] at ([yshift=-2mm]s5.south east) {};
+\node[note, anchor=south east] at ([yshift=2mm]s5.north east) {Server: AI service + Node API};
+\end{tikzpicture}

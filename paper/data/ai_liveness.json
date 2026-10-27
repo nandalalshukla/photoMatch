@@ -1,0 +1,192 @@
+{
+  "decision_threshold": 0.7,
+  "sample_scores": {
+    "real": {
+      "image_shape": [
+        640,
+        480
+      ],
+      "face_width_px": 176.8166732788086,
+      "minifasnet_v2_2.7x": {
+        "p_class0": 6.552901595568983e-06,
+        "p_real": 0.9999138116836548,
+        "p_class2": 7.95869855210185e-05
+      },
+      "minifasnet_v1se_4.0x": {
+        "p_class0": 1.4511999779642792e-07,
+        "p_real": 0.9999979734420776,
+        "p_class2": 1.8765470031212317e-06
+      },
+      "average_p_real": 0.9999558925628662
+    },
+    "print_attack": {
+      "image_shape": [
+        640,
+        480
+      ],
+      "face_width_px": 193.30142211914062,
+      "minifasnet_v2_2.7x": {
+        "p_class0": 0.024655012413859367,
+        "p_real": 0.0044465446844697,
+        "p_class2": 0.970898449420929
+      },
+      "minifasnet_v1se_4.0x": {
+        "p_class0": 0.11833829432725906,
+        "p_real": 0.30492255091667175,
+        "p_class2": 0.5767391920089722
+      },
+      "average_p_real": 0.15468454780057073
+    }
+  },
+  "genuine_quality_sweeps": {
+    "brightness_factor": [
+      {
+        "level": 1.0,
+        "face_found": true,
+        "average_p_real": 0.999940812587738
+      },
+      {
+        "level": 0.6,
+        "face_found": true,
+        "average_p_real": 0.999962568283081
+      },
+      {
+        "level": 0.4,
+        "face_found": true,
+        "average_p_real": 0.9999227523803711
+      },
+      {
+        "level": 0.25,
+        "face_found": true,
+        "average_p_real": 0.999766081571579
+      },
+      {
+        "level": 0.15,
+        "face_found": true,
+        "average_p_real": 0.9995783269405365
+      },
+      {
+        "level": 0.08,
+        "face_found": true,
+        "average_p_real": 0.983341783285141
+      }
+    ],
+    "blur_sigma_px": [
+      {
+        "level": 0,
+        "face_found": true,
+        "average_p_real": 0.999940812587738
+      },
+      {
+        "level": 1,
+        "face_found": true,
+        "average_p_real": 0.9999299049377441
+      },
+      {
+        "level": 2,
+        "face_found": true,
+        "average_p_real": 0.9997692108154297
+      },
+      {
+        "level": 3,
+        "face_found": true,
+        "average_p_real": 0.9995229244232178
+      },
+      {
+        "level": 4,
+        "face_found": true,
+        "average_p_real": 0.9971144497394562
+      },
+      {
+        "level": 6,
+        "face_found": true,
+        "average_p_real": 0.8928052186965942
+      }
+    ],
+    "jpeg_quality": [
+      {
+        "level": 95,
+        "face_found": true,
+        "average_p_real": 0.999932587146759
+      },
+      {
+        "level": 75,
+        "face_found": true,
+        "average_p_real": 0.9998680055141449
+      },
+      {
+        "level": 50,
+        "face_found": true,
+        "average_p_real": 0.9999567270278931
+      },
+      {
+        "level": 30,
+        "face_found": true,
+        "average_p_real": 0.9999020397663116
+      },
+      {
+        "level": 15,
+        "face_found": true,
+        "average_p_real": 0.9999552965164185
+      },
+      {
+        "level": 8,
+        "face_found": true,
+        "average_p_real": 0.9993836581707001
+      }
+    ],
+    "face_width_px": [
+      {
+        "level": 320,
+        "face_found": true,
+        "average_p_real": 0.9999639391899109
+      },
+      {
+        "level": 200,
+        "face_found": true,
+        "average_p_real": 0.999940812587738
+      },
+      {
+        "level": 140,
+        "face_found": true,
+        "average_p_real": 0.9999297857284546
+      },
+      {
+        "level": 100,
+        "face_found": true,
+        "average_p_real": 0.9999163150787354
+      },
+      {
+        "level": 70,
+        "face_found": true,
+        "average_p_real": 0.9998566210269928
+      },
+      {
+        "level": 50,
+        "face_found": true,
+        "average_p_real": 0.9998030662536621
+      },
+      {
+        "level": 36,
+        "face_found": true,
+        "average_p_real": 0.9996279776096344
+      }
+    ]
+  },
+  "attempt_cost_16_frames_640px": {
+    "median_ms": 2155.251569000029,
+    "p05_ms": 2044.7106090000489,
+    "p95_ms": 2270.1952659999733,
+    "mean_ms": 2146.7211012666667,
+    "std_ms": 60.256552853139915,
+    "runs": 15
+  },
+  "spoof_check_two_models": {
+    "median_ms": 4.559589499876893,
+    "p05_ms": 4.179731000022002,
+    "p95_ms": 12.437388000080318,
+    "mean_ms": 6.568225325003141,
+    "std_ms": 2.90139561035781,
+    "runs": 40
+  }
+}
