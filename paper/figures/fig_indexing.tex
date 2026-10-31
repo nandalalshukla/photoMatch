@@ -1,0 +1,28 @@
+% Photo ingestion pipeline (double-column figure).
+\begin{tikzpicture}[
+  font=\scriptsize, >=Latex, node distance=5mm and 7mm,
+  stp/.style={draw, rounded corners=2pt, align=center, minimum height=11mm, minimum width=29mm, inner sep=2pt, fill=white, line width=0.5pt},
+  cl/.style={stp, fill=gray!10},
+  sv/.style={stp, fill=gray!22},
+  note/.style={font=\scriptsize\itshape, align=center},
+  flow/.style={->, line width=0.6pt}]
+
+% row 1: organizer's browser
+\node[cl] (a) {\textbf{1} Fingerprint\\SHA-256 of each file};
+\node[cl, right=of a] (b) {\textbf{2} Duplicate check\\\texttt{POST /photos/check}\\known hashes are skipped};
+\node[cl, right=of b] (c) {\textbf{3} Direct upload\\browser $\rightarrow$ Cloudinary\\signed, folder-restricted};
+\node[cl, right=of c] (d) {\textbf{4} Register\\\texttt{POST /photos} (50 per call)\\status \textsc{pending}};
+
+% row 2: server side (right to left so the arrow continues from step 4)
+\node[sv, below=12mm of d] (e) {\textbf{5} Enqueue\\\texttt{index-photo} jobs\\(pg-boss, one per photo)};
+\node[sv, left=of e] (f) {\textbf{6} Fetch\\1600\,px copy\\from Cloudinary};
+\node[sv, left=of f] (g) {\textbf{7} Analyse\\SCRFD $\rightarrow$ align $\rightarrow$ ArcFace\\\texttt{POST /faces/detect}};
+\node[sv, left=of g] (h) {\textbf{8} Store\\\texttt{INSERT} faces \texttt{vector(512)}\\photo \textsc{ready}, face count};
+
+\draw[flow] (a) -- (b); \draw[flow] (b) -- (c); \draw[flow] (c) -- (d);
+\draw[flow] (d) -- (e); \draw[flow] (e) -- (f); \draw[flow] (f) -- (g); \draw[flow] (g) -- (h);
+
+\node[note, above=1mm of a.north west, anchor=south west] {Organizer's browser (client)};
+\node[note, below=1mm of h.south west, anchor=north west] {Server (API + worker + AI service)};
+\node[note, below=1mm of e.south east, anchor=north east] {on error: up to 3 retries, exponential back-off};
+\end{tikzpicture}

@@ -1,0 +1,57 @@
+% System architecture (double-column figure). Absolute coordinates (cm) keep every arrow orthogonal.
+\begin{tikzpicture}[
+  font=\footnotesize, >=Latex,
+  box/.style={draw, rounded corners=2pt, align=center, inner sep=3pt, fill=white, line width=0.5pt, minimum height=9mm},
+  svc/.style={box, fill=gray!10, align=left},
+  lab/.style={font=\scriptsize, fill=white, inner sep=1pt, align=center},
+  flow/.style={->, line width=0.6pt},
+  two/.style={<->, line width=0.6pt}]
+
+% ---- clients
+\node[box, minimum width=34mm] (org) at (0,5.0)  {Organizer\\[-1pt]\scriptsize web browser};
+\node[box, minimum width=34mm] (gm)  at (0,2.4)  {Guest\\[-1pt]\scriptsize WhatsApp / Telegram app};
+\node[box, minimum width=34mm] (gb)  at (0,-0.2) {Guest\\[-1pt]\scriptsize web browser + camera};
+
+% ---- external services
+\node[box, minimum width=30mm, minimum height=12mm] (cld) at (4.3,6.6) {Cloudinary\\[-1pt]\scriptsize photo storage};
+\node[box, minimum width=30mm, minimum height=12mm] (msg) at (4.3,2.4) {Telegram Bot API\\[-1pt]\scriptsize WhatsApp Cloud API};
+
+% ---- application tier
+\node[svc, minimum width=42mm, minimum height=62mm, text width=38mm] (api) at (9.5,2.4)
+  {\textbf{Node.js API} (Express 5)\\[2pt]
+   \scriptsize $\bullet$ better-auth: e-mail, Google\\
+   \scriptsize $\bullet$ events, signed uploads,\\\scriptsize\ \ duplicate check\\
+   \scriptsize $\bullet$ bot webhooks (HMAC /\\\scriptsize\ \ secret header)\\
+   \scriptsize $\bullet$ galleries, liveness gate,\\\scriptsize\ \ signed cookie\\
+   \scriptsize $\bullet$ serves the React web app};
+\node[svc, minimum width=42mm, minimum height=24mm, text width=38mm] (wrk) at (14.6,4.3)
+  {\textbf{Background worker}\\[1pt]
+   \scriptsize pg-boss jobs \texttt{index-photo},\\
+   \scriptsize \texttt{search-selfie}; 3 retries with\\
+   \scriptsize exponential back-off};
+\node[svc, minimum width=42mm, minimum height=34mm, text width=38mm] (ai) at (14.6,-0.5)
+  {\textbf{AI service} (FastAPI)\\[1pt]
+   \scriptsize ONNX Runtime, CPU, stateless\\
+   \scriptsize $\bullet$ SCRFD: faces, 5 landmarks\\
+   \scriptsize $\bullet$ ArcFace R50: 512-d vector\\
+   \scriptsize $\bullet$ 3-D landmarks: head yaw\\
+   \scriptsize $\bullet$ MiniFASNet $\times 2$: anti-spoof};
+
+% ---- database
+\node[svc, minimum width=92mm, minimum height=13mm, text width=88mm, align=center] (db) at (12.1,-4.6)
+  {\textbf{PostgreSQL 16 + pgvector}\\[1pt]
+   \scriptsize relational data (users, events, photos, searches) $\bullet$ \texttt{vector(512)} faces $\bullet$ job queue};
+
+% ---- flows
+\draw[flow] (org.east) -- node[lab, pos=0.5] {\textcircled{\scriptsize 1} REST} (api.west |- org.east);
+\draw[flow] (org.north) |- node[lab, pos=0.78] {\textcircled{\scriptsize 2} signed direct upload} (cld.west);
+\draw[two]  (gm.east) -- (msg.west);
+\draw[two]  (msg.east) -- node[lab, pos=0.5] {\textcircled{\scriptsize 7}\,webhook,\\reply} (api.west |- msg.east);
+\draw[two]  (gb.east) -- node[lab, pos=0.5] {\textcircled{\scriptsize 8} gallery,\\liveness frames} (api.west |- gb.east);
+\draw[flow] (api.east |- wrk.west) -- node[lab, pos=0.5] {\textcircled{\scriptsize 3}} (wrk.west);
+\draw[flow, dashed] (cld.east) -- node[lab, pos=0.5] {\textcircled{\scriptsize 4} resized copy (1600\,px)} (wrk.north |- cld.east) -- (wrk.north);
+\draw[two]  (wrk.south) -- node[lab, pos=0.5] {\textcircled{\scriptsize 5} images,\\embeddings} (ai.north);
+\draw[two]  (api.east |- ai.west) -- node[lab, pos=0.5] {\textcircled{\scriptsize 9}} (ai.west);
+\draw[two]  ([xshift=-10mm]api.south) -- node[lab, pos=0.5] {\textcircled{\scriptsize 6} data, search} ([xshift=-10mm]api.south |- db.north);
+\draw[two]  (wrk.east) -- ++(6mm,0) -- node[lab, pos=0.5] {\textcircled{\scriptsize 6}} ([xshift=6mm]wrk.east |- db.east) -- (db.east);
+\end{tikzpicture}
